@@ -107,7 +107,7 @@ jobs:
       
       - name: Complete onboarding
         if: steps.extract.outputs.validated == 'true'
-        uses: automation-workflows/contributor-automation/.github/workflows/reusable-onboard.yml@main
+        uses: automation-workflows/contributor-automation/.github/workflows/reusable-onboard-NEW.yml@main
         with:
           pr_number: ${{ inputs.issue_number }}
           repo_name: ${{ inputs.repo_name }}

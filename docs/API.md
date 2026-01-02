@@ -2,7 +2,154 @@
 
 Complete reference for all workflows, scripts, and configuration options.
 
+---
+
+## Table of Contents
+
+1. [Workflow Trigger Diagram](#workflow-trigger-diagram)
+2. [Reusable Workflows](#reusable-workflows)
+3. [Trigger Workflows (Template)](#trigger-workflows-template)
+4. [Python Scripts](#python-scripts)
+5. [Configuration Schema](#configuration-schema)
+6. [TOML Schema](#toml-schema)
+7. [Assignment Types](#assignment-types)
+
+---
+
+## Workflow Trigger Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         GITHUB EVENTS (Triggers)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          PR WORKFLOW (Onboarding)                        │
+└──────────────────────────────────────────────────────────────────────────┘
+
+PR MERGED
+    │
+    ├─ first-time-contributor label?
+    │  YES → onboard-trigger.yml
+    │         (post comment asking for Discord/wallet)
+    │              │
+    │              ▼
+    │         PR COMMENT (from PR author)
+    │         onboard-response-trigger.yml
+    │         (validates Discord/wallet)
+    │              │
+    │              ▼
+    │         reusable-onboard.yml
+    │         (create TOML, assign Discord role)
+    │              │
+    │              ▼
+    │         TOML File Created
+    │         status.current_role = "Apprentice"
+    │
+    └─ NO (TOML exists)
+       ├─► update-trigger.yml
+       │   (update PR stats in TOML)
+       │
+       └─► promote-trigger.yml
+           (check if eligible for Sentinel promotion)
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      ISSUE WORKFLOW (Assignment)                         │
+└──────────────────────────────────────────────────────────────────────────┘
+
+ISSUE OPENED
+    │
+    └─► issue-trigger.yml
+        └─► reusable-issue-assign.yml
+            └─► issue_router.py (check labels)
+                │
+                ├─ Has "good-first-issue" or "beginner-friendly"?
+                │  YES → Routes to APPRENTICES
+                │         └─► Comment: "Apprentices can self-assign"
+                │
+                └─ NO → Routes to SENTINEL (auto-assignment)
+                        └─► sentinel_assigner.py
+                            ├─ Find available Sentinel (max_concurrent check)
+                            ├─ Assign issue on GitHub
+                            ├─► gist_manager.py: assign_issue_to_sentinel()
+                            │   └─► Add to [[assignments]] array
+                            │       with deadline = assigned_at + 5 days
+                            └─► Comment with deadline + labels issue
+
+
+ISSUE ASSIGNED (Manual by Maintainer)
+    │
+    └─► manual-assign-trigger.yml
+        └─► reusable-manual-assign.yml
+            └─► contributor_checker.py (check if contributor exists)
+                │
+                ├─ Contributor exists (TOML found)?
+                │  YES → gist_manager.py: add_manual_assignment()
+                │         └─► Add to [[manual_assignments]] array
+                │             (no deadline, tracked but not monitored)
+                │
+                └─ NO → Comment: "Not a registered contributor"
+
+
+ISSUE UNLABELED (Triage Workflow)
+    │
+    └─ Label removed = "triage-needed"?
+       YES → triage-removal-trigger.yml
+             └─► reusable-triage-removal.yml
+                 └─► Fetch issue to check assignees
+                     │
+                     └─ Has assignees?
+                        YES → gist_manager.py: add_manual_assignment()
+                              └─► Add to [[manual_assignments]] array
+                              (tracks post-triage assignments)
+
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    HEALTH CHECK (Monitoring)                             │
+└──────────────────────────────────────────────────────────────────────────┘
+
+SCHEDULE (every 5 days) OR MANUAL TRIGGER
+    │
+    └─► health-trigger.yml
+        └─► reusable-health-check.yml
+            └─► health_check.py
+                │
+                ├─► Loop through ALL Sentinels
+                │   └─► For each Sentinel: loop through [[assignments]] only
+                │       (ignores [[manual_assignments]])
+                │       │
+                │       ├─ Deadline in 3 days? → Send warning to Discord
+                │       ├─ Overdue? → Free Sentinel, reassign issue
+                │       └─ Issue closed? → Remove from [[assignments]]
+                │
+                └─► Generate health report artifact
+```
+
+### Key Points:
+
+**PR Workflow:**
+- **First-time**: PR merged with `first-time-contributor` label → comment posted → user responds → Discord/wallet validated → TOML created with Apprentice role
+- **Existing**: PR merged without label → stats updated OR promotion checked (TOML already exists)
+
+**Issue Assignment (3 flows):**
+1. **Auto-assignment (System)**: Issue opened → routed based on labels:
+   - `good-first-issue`/`beginner-friendly` → Apprentices (self-assign)
+   - Other labels → Auto-assigned to available Sentinel → `[[assignments]]` with 5-day deadline
+2. **Manual assignment (Maintainer)**: Maintainer assigns via GitHub → tracked in `[[manual_assignments]]` (no deadline)
+3. **Post-triage assignment**: `triage-needed` label removed + issue assigned → tracked in `[[manual_assignments]]`
+
+**Health Monitoring:**
+- Runs every 5 days or on-demand
+- Only monitors `[[assignments]]` (auto-assignments with deadlines)
+- Ignores `[[manual_assignments]]` (no deadline enforcement)
+- Actions: warnings (3 days before), free Sentinel + reassign (if overdue)
+
+---
+
 ## Reusable Workflows
+
+These workflows live in `aossie/contributor-automation` and are called by trigger workflows in each project.
 
 ### 1. reusable-onboard.yml
 
@@ -18,34 +165,37 @@ Complete reference for all workflows, scripts, and configuration options.
 | `wallet` | string | ✅ | Wallet address (0x... 42 chars) |
 | `lines_changed` | number | ✅ | Total lines changed in first PR |
 
-**Secrets:**
-- `GIST_PAT`
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_GUILD_ID`
-- `DISCORD_APPRENTICE_ROLE_ID`
+**Secrets:** `GIST_PAT`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_APPRENTICE_ROLE_ID`
 
-**Outputs:** None
-
-**Usage:**
-```yaml
-jobs:
-  onboard:
-    uses: aossie/contributor-automation/.github/workflows/reusable-onboard.yml@main
-    with:
-      pr_number: 123
-      repo_name: "aossie/my-project"
-      pr_author: "alice"
-      discord_id: "123456789012345678"
-      wallet: "0x1234567890abcdef1234567890abcdef12345678"
-      lines_changed: 150
-    secrets: inherit
-```
-
-**Note:** This workflow is typically called by `onboard-response-trigger.yml` after user provides info, not directly.
+**Called by:** `reusable-onboard-response.yml`
 
 ---
 
-### 2. reusable-update-registry.yml
+### 2. reusable-onboard-response.yml
+
+**Purpose:** Validate user response and extract Discord ID + wallet from comment
+
+**Inputs:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `issue_number` | number | ✅ | PR number |
+| `repo_name` | string | ✅ | Repository name |
+| `comment_body` | string | ✅ | Comment text to parse |
+| `commenter` | string | ✅ | Username who commented |
+
+**Secrets:** `GIST_PAT`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_APPRENTICE_ROLE_ID`
+
+**Called by:** `onboard-response-trigger.yml`
+
+**Logic:**
+1. Validates PR is merged and has `first-time-contributor` label
+2. Checks commenter is PR author
+3. Extracts Discord ID and wallet using regex
+4. Calls `reusable-onboard.yml` if valid
+
+---
+
+### 3. reusable-update-registry.yml
 
 **Purpose:** Update contributor statistics after PR merge
 
@@ -58,12 +208,13 @@ jobs:
 | `lines_changed` | number | ✅ | Total lines changed (additions + deletions) |
 | `pr_labels` | string | ✅ | PR labels (JSON array) |
 
-**Secrets:**
-- `GIST_PAT`
+**Secrets:** `GIST_PAT`
+
+**Called by:** `update-trigger.yml`
 
 ---
 
-### 3. reusable-promote.yml
+### 4. reusable-promote.yml
 
 **Purpose:** Check and execute promotion to Sentinel
 
@@ -74,16 +225,13 @@ jobs:
 | `repo_name` | string | ✅ | Repository name |
 | `pr_author` | string | ✅ | PR author username |
 
-**Secrets:**
-- `GIST_PAT`
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_GUILD_ID`
-- `DISCORD_APPRENTICE_ROLE_ID`
-- `DISCORD_SENTINEL_ROLE_ID`
+**Secrets:** `GIST_PAT`, `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `DISCORD_APPRENTICE_ROLE_ID`, `DISCORD_SENTINEL_ROLE_ID`
+
+**Called by:** `promote-trigger.yml`
 
 ---
 
-### 4. reusable-issue-assign.yml
+### 5. reusable-issue-assign.yml
 
 **Purpose:** Route issues to Apprentices or Sentinels
 
@@ -94,8 +242,177 @@ jobs:
 | `repo_name` | string | ✅ | Repository name |
 | `issue_labels` | string | ✅ | Labels (JSON array) |
 
-**Secrets:**
-- `GIST_PAT`
+**Secrets:** `GIST_PAT`, `DISCORD_BOT_TOKEN`
+
+**Called by:** `issue-trigger.yml`
+
+---
+
+### 6. reusable-manual-assign.yml
+
+**Purpose:** Track manual issue assignments by maintainers
+
+**Inputs:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `issue_number` | number | ✅ | Issue number |
+| `repo_name` | string | ✅ | Repository name |
+| `assignee` | string | ✅ | Assignee username |
+| `assigned_at` | string | ✅ | Assignment timestamp |
+
+**Secrets:** `GIST_PAT`
+
+**Called by:** `manual-assign-trigger.yml`
+
+**Logic:**
+1. Checks if assignee is existing contributor
+2. Adds to `manual_assignments` array (no deadline)
+3. Posts comment if non-contributor assigned
+
+---
+
+### 7. reusable-triage-removal.yml
+
+**Purpose:** Track assignments when triage-needed label is removed
+
+**Inputs:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `issue_number` | number | ✅ | Issue number |
+| `repo_name` | string | ✅ | Repository name |
+| `label_removed` | string | ✅ | Label name that was removed |
+
+**Secrets:** `GIST_PAT`
+
+**Called by:** `triage-removal-trigger.yml`
+
+**Logic:**
+1. Only processes if `label_removed == 'triage-needed'`
+2. Checks if issue is assigned
+3. Adds to `manual_assignments` if assignee is contributor
+
+---
+
+### 8. reusable-health-check.yml
+
+**Purpose:** Monitor Sentinel assignments and enforce deadlines
+
+**Inputs:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repo_name` | string | ❌ | Specific repo to check (optional) |
+
+**Secrets:** `GIST_PAT`, `DISCORD_BOT_TOKEN`
+
+**Called by:** `health-trigger.yml`
+
+**Outputs:** Uploads artifact `health-check-report` with JSON report
+
+**Note:** Only monitors `assignments` array, ignores `manual_assignments`
+
+---
+
+## Trigger Workflows (Template)
+
+These workflows live in each AOSSIE project's `.github/workflows/` folder. They are lightweight triggers that call reusable workflows.
+
+### onboard-trigger.yml
+
+**Trigger:** `pull_request.closed` (when merged + first-time-contributor label)
+
+**Flow:**
+1. PR merged → Posts comment asking for Discord ID and wallet
+2. Uses `github-script` to post formatted comment with instructions
+
+---
+
+### onboard-response-trigger.yml
+
+**Trigger:** `issue_comment.created` (on PR comments only)
+
+**Flow:**
+1. User responds with Discord ID and wallet
+2. Calls `reusable-onboard-response.yml`
+3. Validates and completes onboarding
+
+---
+
+### update-trigger.yml
+
+**Trigger:** `pull_request.closed` (when merged, not first-time)
+
+**Flow:**
+1. PR merged → Calls `reusable-update-registry.yml`
+2. Updates contributor stats in TOML
+
+---
+
+### promote-trigger.yml
+
+**Trigger:** `pull_request.closed` (when merged, not first-time)
+
+**Flow:**
+1. PR merged → Calls `reusable-promote.yml`
+2. Checks promotion eligibility
+3. Promotes to Sentinel if qualified
+
+---
+
+### issue-trigger.yml
+
+**Trigger:** `issues.opened`
+
+**Flow:**
+1. Issue opened → Calls `reusable-issue-assign.yml`
+2. Routes to Apprentices or assigns to Sentinel
+
+---
+
+### manual-assign-trigger.yml
+
+**Trigger:** `issues.assigned`
+
+**Flow:**
+1. Maintainer assigns issue → Calls `reusable-manual-assign.yml`
+2. Tracks in `manual_assignments` array
+
+---
+
+### triage-removal-trigger.yml
+
+**Trigger:** `issues.unlabeled`
+
+**Flow:**
+1. Label removed → Calls `reusable-triage-removal.yml`
+2. If `triage-needed` removed and assigned → Track assignment
+
+---
+
+### health-trigger.yml
+
+**Trigger:** `schedule.cron` (every 5 days) or `workflow_dispatch`
+
+**Flow:**
+1. Runs health check on all Sentinels
+2. Enforces deadlines, frees Sentinels, sends warnings
+
+---
+
+## Assignment Types
+
+### 1. Auto-Assignment (System Controlled)
+- **How:** System finds available Sentinel via `reusable-issue-assign.yml`
+- **Storage:** `[[assignments]]` array with deadline
+- **Monitoring:** Health check enforces deadline
+- **Outcome:** Automatic reassignment if overdue
+
+### 2. Manual Assignment (Maintainer Controlled)
+- **How:** Maintainer assigns via GitHub UI or after triage
+- **Storage:** `[[manual_assignments]]` array (no deadline)
+- **Monitoring:** Health check ignores these
+- **Outcome:** Contributor works at own pace, no warnings
+
+---
 - `DISCORD_BOT_TOKEN`
 
 ---
@@ -216,16 +533,29 @@ python gist_manager.py \
 ```
 
 #### `assign_issue_to_sentinel`
-Mark Sentinel as assigned.
+Add auto-assignment to Sentinel (with deadline tracking).
 
 ```bash
 python gist_manager.py \
   --action assign_issue_to_sentinel \
-  --gist-pat "$GIST_PAT" \
   --username "alice" \
   --repo-name "aossie/repo" \
   --issue-number 10 \
-  --assigned-at "2026-01-03T12:00:00Z"
+  --assigned-at "2026-01-03T12:00:00Z" \
+  --gist-pat "$GIST_PAT"
+```
+
+#### `add_manual_assignment`
+Add manual assignment to contributor (no deadline tracking).
+
+```bash
+python gist_manager.py \
+  --action add_manual_assignment \
+  --username "alice" \
+  --repo-name "aossie/repo" \
+  --issue-number 20 \
+  --assigned-at "2026-01-04T08:00:00Z" \
+  --gist-pat "$GIST_PAT"
 ```
 
 ---
@@ -277,8 +607,12 @@ Find random available Sentinel.
 python sentinel_assigner.py \
   --action find_available \
   --gist-pat "$GIST_PAT" \
+  --max-concurrent 1 \
   --output-file sentinel.json
 ```
+
+**Parameters:**
+- `--max-concurrent`: Maximum concurrent issues (auto + manual combined). Default: `1`
 
 **Output:**
 ```json
@@ -288,6 +622,10 @@ python sentinel_assigner.py \
   "discord_id": "123..."
 }
 ```
+
+**Logic:**
+- Checks `total_assignments = len(assignments) + len(manual_assignments)`
+- Only returns Sentinels where `total_assignments < max_concurrent`
 
 #### `assign_issue`
 Assign GitHub issue to Sentinel.
@@ -316,7 +654,7 @@ python sentinel_assigner.py \
 
 ### 5. health_check.py
 
-**Purpose:** Monitor Sentinel assignments
+**Purpose:** Monitor Sentinel auto-assignments (ignores manual assignments)
 
 ```bash
 python health_check.py \
@@ -324,6 +662,11 @@ python health_check.py \
   --github-token "$GITHUB_TOKEN" \
   --output-file health_report.json
 ```
+
+**Logic:**
+- Only processes `assignments` array (with deadlines)
+- Ignores `manual_assignments` array completely
+- For each assignment: checks deadline, sends warnings, frees/reassigns if overdue
 
 **Output:**
 ```json
@@ -352,7 +695,6 @@ min_hours_between_prs = 48  # Anti-spam
 deadline_days = 5
 extension_allowed = false
 use_business_days = true
-max_concurrent_issues = 1  # System enforced for auto-assignment
 
 [onboarding]
 response_timeout_days = 7
@@ -415,16 +757,23 @@ issues_resolved = 2
 issues_stale = 0
 
 [status]
-assigned = true
+assigned = true  # true if ANY assignment (auto OR manual) exists
 current_role = "Sentinel"  # "Apprentice" | "Sentinel"
-blocked = false
+blocked = false  # Manual flag - set to true to prevent auto-assignments and promotions
+                 # Currently must be edited manually in Gist TOML file
+                 # Future: Could be automated based on repeated deadline failures
 
+# Auto-assignments (system controlled with deadline tracking)
 [[assignments]]
 issue_url = "aossie/repo#123"
 assigned_at = "2026-01-01T10:00:00Z"
 deadline = "2026-01-06T10:00:00Z"
-manual_assignment = false  # true = maintainer assigned, don't track in health check
 knight_override = false
+
+# Manual assignments (maintainer controlled, no deadline tracking)
+[[manual_assignments]]
+issue_url = "aossie/repo#456"
+assigned_at = "2026-01-02T12:00:00Z"
 
 [[prs]]
 repo = "aossie/project"

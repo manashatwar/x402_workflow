@@ -14,13 +14,13 @@ from utils import load_config, write_output_file, calculate_deadline
 from github import Github
 
 
-def find_available_sentinel(gist_pat: str) -> Optional[Dict[str, Any]]:
+def find_available_sentinel(gist_pat: str, max_concurrent: int = 1) -> Optional[Dict[str, Any]]:
     """
     Find a random available Sentinel.
     
     Criteria:
     - current_role = "Sentinel"
-    - status.assigned = false OR assignments count < max_concurrent_issues
+    - Total assignments (auto + manual) < max_concurrent
     - status.blocked = false
     
     Edge cases:
@@ -35,7 +35,6 @@ def find_available_sentinel(gist_pat: str) -> Optional[Dict[str, Any]]:
         # Clone Gist
         config = load_config()
         gist_url = config['gist']['registry_url']
-        max_concurrent = config['sentinel'].get('max_concurrent_issues', 1)
         repo_dir = os.path.join(tempfile.gettempdir(), 'aossie_gist_repo')
         
         if os.path.exists(repo_dir):
@@ -61,16 +60,17 @@ def find_available_sentinel(gist_pat: str) -> Optional[Dict[str, Any]]:
                     current_role = status.get('current_role', '')
                     blocked = status.get('blocked', False)
                     
-                    # Count current assignments (only non-manual ones)
-                    assignments = data.get('assignments', [])
-                    active_assignments = sum(1 for a in assignments if not a.get('manual_assignment', False))
+                    # Count total assignments (auto + manual)
+                    auto_assignments = len(data.get('assignments', []))
+                    manual_assignments = len(data.get('manual_assignments', []))
+                    total_assignments = auto_assignments + manual_assignments
                     
-                    if current_role == 'Sentinel' and not blocked and active_assignments < max_concurrent:
+                    if current_role == 'Sentinel' and total_assignments < max_concurrent and not blocked:
                         available_sentinels.append({
                             'username': data['github']['login'],
                             'discord_id': data.get('discord', {}).get('user_id', ''),
                             'issues_resolved': data.get('stats', {}).get('issues_resolved', 0),
-                            'current_load': active_assignments
+                            'current_load': total_assignments
                         })
                 
                 except Exception as e:
@@ -80,7 +80,7 @@ def find_available_sentinel(gist_pat: str) -> Optional[Dict[str, Any]]:
         if not available_sentinels:
             return None
         
-        # Random selection (prefer lower load)
+        # Random selection
         selected = random.choice(available_sentinels)
         
         return {
@@ -152,6 +152,7 @@ def main():
     parser.add_argument('--action', required=True,
                        choices=['find_available', 'assign_issue', 'add_deadline_label'])
     parser.add_argument('--gist-pat', help='Gist PAT')
+    parser.add_argument('--max-concurrent', type=int, default=1, help='Max concurrent assignments per Sentinel')
     parser.add_argument('--repo-name', help='Repository name')
     parser.add_argument('--issue-number', type=int, help='Issue number')
     parser.add_argument('--sentinel-username', help='Sentinel username')
@@ -162,7 +163,7 @@ def main():
     
     try:
         if args.action == 'find_available':
-            result = find_available_sentinel(args.gist_pat)
+            result = find_available_sentinel(args.gist_pat, args.max_concurrent)
             if result:
                 write_output_file(args.output_file, result)
             else:

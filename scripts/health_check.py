@@ -44,7 +44,7 @@ class HealthChecker:
                           check=True, capture_output=True)
     
     def get_all_sentinels(self) -> List[Dict[str, Any]]:
-        """Get all Sentinels with active assignments (excluding manual assignments)."""
+        """Get all Sentinels with active auto-assignments (ignores manual assignments)."""
         sentinels = []
         
         for filename in os.listdir(self.repo_dir):
@@ -55,22 +55,15 @@ class HealthChecker:
                     with open(filepath, 'r') as f:
                         data = toml.load(f)
                     
-                    status = data.get('status', {})
+                    # Only process Sentinels with auto-assignments (not manual)
+                    assignments = data.get('assignments', [])
                     
-                    if status.get('assigned', False):
-                        # Get tracked assignments (manual_assignment=false)
-                        tracked_assignments = [
-                            a for a in data.get('assignments', [])
-                            if not a.get('manual_assignment', False)
-                        ]
-                        
-                        if tracked_assignments:
-                            sentinels.append({
-                                'username': data['github']['login'],
-                                'filepath': filepath,
-                                'data': data,
-                                'tracked_assignments': tracked_assignments
-                            })
+                    if len(assignments) > 0:
+                        sentinels.append({
+                            'username': data['github']['login'],
+                            'filepath': filepath,
+                            'data': data
+                        })
                 
                 except Exception as e:
                     print(f"Error reading {filename}: {e}")
@@ -113,19 +106,18 @@ class HealthChecker:
                 'error': str(e)
             }
     
-    def free_sentinel(self, sentinel: Dict[str, Any], assignment_to_remove: Dict[str, Any]):
+    def free_sentinel(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]):
         """Free Sentinel from a specific assignment."""
         data = sentinel['data']
         
-        # Remove this assignment
-        data['assignments'] = [
-            a for a in data.get('assignments', [])
-            if a.get('issue_url') != assignment_to_remove.get('issue_url')
-        ]
+        # Remove from assignments array
+        if 'assignments' in data:
+            data['assignments'] = [a for a in data['assignments'] 
+                                  if a.get('issue_url') != assignment.get('issue_url')]
         
-        # Update assigned status
-        if not data['assignments']:
-            data['status']['assigned'] = False
+        # Update assigned status based on total remaining assignments
+        total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
+        data['status']['assigned'] = total_assignments > 0
         
         # Update stats
         stats = data.get('stats', {})
@@ -137,13 +129,10 @@ class HealthChecker:
             toml.dump(data, f)
         
         self.freed_count += 1
-        print(f"✓ Freed Sentinel: {sentinel['username']}")
+        print(f"✓ Freed Sentinel {sentinel['username']} from {assignment.get('issue_url', '')}")
     
     def reassign_issue(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]):
         """Reassign overdue issue to another Sentinel."""
-        # TODO: Find another available Sentinel and reassign
-        # For now, just free the current Sentinel and escalate
-        
         data = sentinel['data']
         issue_url = assignment.get('issue_url', '')
         
@@ -152,8 +141,14 @@ class HealthChecker:
         stats['issues_stale'] = stats.get('issues_stale', 0) + 1
         data['stats'] = stats
         
-        # Remove this assignment
-        self.free_sentinel(sentinel, assignment)
+        # Remove from assignments array
+        if 'assignments' in data:
+            data['assignments'] = [a for a in data['assignments'] 
+                                  if a.get('issue_url') != issue_url]
+        
+        # Update assigned status
+        total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
+        data['status']['assigned'] = total_assignments > 0
         
         with open(sentinel['filepath'], 'w') as f:
             toml.dump(data, f)
@@ -163,7 +158,8 @@ class HealthChecker:
     
     def process_sentinel(self, sentinel: Dict[str, Any]):
         """
-        Process single Sentinel health check - check each tracked assignment.
+        Process single Sentinel health check for all auto-assignments.
+        Skips manual_assignments (no deadline tracking).
         
         Edge cases:
         - Issue closed by someone else
@@ -172,19 +168,21 @@ class HealthChecker:
         - Sentinel went inactive
         """
         username = sentinel['username']
-        tracked_assignments = sentinel.get('tracked_assignments', [])
+        data = sentinel['data']
+        assignments = data.get('assignments', [])
         
-        if not tracked_assignments:
+        if not assignments:
             return
         
-        print(f"Checking Sentinel {username} - {len(tracked_assignments)} tracked assignment(s)")
+        print(f"Checking Sentinel {username} - {len(assignments)} auto-assignment(s)")
         
-        for assignment in tracked_assignments:
+        # Process each assignment
+        for assignment in assignments[:]:
             issue_url = assignment.get('issue_url', '')
             deadline = assignment.get('deadline', '')
             knight_override = assignment.get('knight_override', False)
             
-            print(f"  Issue: {issue_url}")
+            print(f"  Checking Issue: {issue_url}")
             
             # Check issue status
             issue_status = self.check_issue_status(issue_url)
@@ -195,28 +193,28 @@ class HealthChecker:
                     # Mark as overridden, skip deadline tracking
                     assignment['knight_override'] = True
                     with open(sentinel['filepath'], 'w') as f:
-                        toml.dump(sentinel['data'], f)
-                    print(f"  ⏸️  Knight override detected - deadline tracking paused")
-            return
-        
-        # If issue is closed, free Sentinel
-        if issue_status.get('closed', False):
-            self.free_sentinel(sentinel)
-            return
-        
-        # Check deadline
-        time_info = get_time_remaining(deadline)
-        
-        if time_info['is_overdue']:
-            # Deadline passed - reassign
-            print(f"  ⏰ Deadline passed by {abs(time_info['hours_remaining'])} hours")
-            self.reassign_issue(sentinel)
-        
-        elif time_info['hours_remaining'] <= 24:
-            # Send warning (within 24 hours of deadline)
-            print(f"  ⚠️  Warning: {time_info['hours_remaining']} hours remaining")
-            self.send_deadline_warning(sentinel, issue_status.get('issue'), time_info)
-            self.warnings_sent += 1
+                        toml.dump(data, f)
+                    print(f"    ⏸️  Knight override detected - deadline tracking paused")
+                continue
+            
+            # If issue is closed, free Sentinel
+            if issue_status.get('closed', False):
+                self.free_sentinel(sentinel, assignment)
+                continue
+            
+            # Check deadline
+            time_info = get_time_remaining(deadline)
+            
+            if time_info['is_overdue']:
+                # Deadline passed - reassign
+                print(f"    ⏰ Deadline passed by {abs(time_info['hours_remaining'])} hours")
+                self.reassign_issue(sentinel, assignment)
+            
+            elif time_info['hours_remaining'] <= 24:
+                # Send warning (within 24 hours of deadline)
+                print(f"    ⚠️  Warning: {time_info['hours_remaining']} hours remaining")
+                self.send_deadline_warning(sentinel, issue_status.get('issue'), time_info)
+                self.warnings_sent += 1
     
     def send_deadline_warning(self, sentinel: Dict[str, Any], issue, time_info: Dict[str, Any]):
         """Send deadline approaching warning."""

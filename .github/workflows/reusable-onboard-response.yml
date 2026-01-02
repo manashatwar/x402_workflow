@@ -1,0 +1,118 @@
+name: Reusable Onboarding Response Handler
+
+on:
+  workflow_call:
+    inputs:
+      issue_number:
+        description: 'PR/Issue number'
+        required: true
+        type: number
+      repo_name:
+        description: 'Repository name (owner/repo)'
+        required: true
+        type: string
+      comment_body:
+        description: 'Comment body text'
+        required: true
+        type: string
+      commenter:
+        description: 'Username who commented'
+        required: true
+        type: string
+    secrets:
+      GIST_PAT:
+        required: true
+      DISCORD_BOT_TOKEN:
+        required: true
+      DISCORD_GUILD_ID:
+        required: true
+      DISCORD_APPRENTICE_ROLE_ID:
+        required: true
+
+jobs:
+  process-response:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate and extract info
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issueNumber = ${{ inputs.issue_number }};
+            
+            // Fetch PR details
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: issueNumber,
+            });
+            
+            // Must be merged
+            if (!pr.merged) {
+              console.log("PR not merged, skipping");
+              return;
+            }
+            
+            // Must have first-time-contributor label
+            const hasLabel = pr.labels.some(label => label.name === 'first-time-contributor');
+            if (!hasLabel) {
+              console.log("Not a first-time contributor PR, skipping");
+              return;
+            }
+            
+            // Only PR author allowed
+            const commenter = "${{ inputs.commenter }}";
+            if (commenter !== pr.user.login) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: `⚠️ @${commenter}, only the PR author (@${pr.user.login}) can provide onboarding information.`
+              });
+              return core.setFailed("Commenter is not PR author");
+            }
+            
+            // Extract Discord ID and wallet using regex
+            const body = `${{ inputs.comment_body }}`;
+            
+            const discordMatch = body.match(/discord:\s*"?(\d{17,20})"?/i);
+            const walletMatch = body.match(/wallet:\s*"?(0x[a-fA-F0-9]{40})"?/i);
+            
+            if (!discordMatch || !walletMatch) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                body: [
+                  `⚠️ @${commenter}, invalid format! Please use **exactly**:`,
+                  "",
+                  "```",
+                  'discord: "YOUR_DISCORD_USER_ID"',
+                  'wallet: "YOUR_WALLET_ADDRESS"',
+                  "```",
+                  "",
+                  "Discord ID must be 17-20 digits. Wallet must start with \`0x\` and be 42 characters."
+                ].join("\\n")
+              });
+              return core.setFailed("Invalid format");
+            }
+            
+            core.setOutput("discord_id", discordMatch[1]);
+            core.setOutput("wallet", walletMatch[1]);
+            core.setOutput("pr_author", pr.user.login);
+            core.setOutput("lines_changed", pr.additions + pr.deletions);
+            core.setOutput("validated", "true");
+      
+      - name: Complete onboarding
+        if: steps.extract.outputs.validated == 'true'
+        uses: aossie/contributor-automation/.github/workflows/reusable-onboard.yml@main
+        with:
+          pr_number: ${{ inputs.issue_number }}
+          repo_name: ${{ inputs.repo_name }}
+          pr_author: ${{ steps.extract.outputs.pr_author }}
+          discord_id: ${{ steps.extract.outputs.discord_id }}
+          wallet: ${{ steps.extract.outputs.wallet }}
+          lines_changed: ${{ steps.extract.outputs.lines_changed }}
+        secrets: inherit

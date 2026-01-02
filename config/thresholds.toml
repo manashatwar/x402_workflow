@@ -15,8 +15,6 @@ deadline_days = 5
 extension_allowed = false
 # Use business days for deadline calculation (exclude weekends)
 use_business_days = true
-# Maximum concurrent issues per Sentinel (auto-assignment only, maintainers can override manually)
-max_concurrent_issues = 1
 
 [onboarding]
 # Days to wait for Discord/wallet response before creating partial TOML

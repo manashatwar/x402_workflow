@@ -88,6 +88,8 @@ class GistManager:
                     'current_role': 'Apprentice',
                     'blocked': False
                 },
+                'assignments': [],
+                'manual_assignments': [],
                 'prs': [
                     {
                         'repo': repo_name,
@@ -210,8 +212,8 @@ class GistManager:
             return False
     
     def assign_issue_to_sentinel(self, username: str, repo_name: str, 
-                                issue_number: int, assigned_at: str, manual: bool = False) -> bool:
-        """Mark Sentinel as assigned to an issue."""
+                                issue_number: int, assigned_at: str) -> bool:
+        """Add auto-assignment to Sentinel (with deadline tracking)."""
         try:
             self.clone_repo()
             filepath = self.get_toml_path(username)
@@ -221,21 +223,24 @@ class GistManager:
             
             deadline = calculate_deadline(assigned_at)
             
-            # Initialize assignments array if not exists
+            # Initialize arrays if not present
             if 'assignments' not in data:
                 data['assignments'] = []
+            if 'manual_assignments' not in data:
+                data['manual_assignments'] = []
             
-            # Add new assignment
-            data['assignments'].append({
+            # Add to assignments array
+            new_assignment = {
                 'issue_url': f"{repo_name}#{issue_number}",
                 'assigned_at': assigned_at,
                 'deadline': deadline,
-                'manual_assignment': manual,
                 'knight_override': False
-            })
+            }
+            data['assignments'].append(new_assignment)
             
             # Update assigned status
-            data['status']['assigned'] = True
+            total_assignments = len(data['assignments']) + len(data['manual_assignments'])
+            data['status']['assigned'] = total_assignments > 0
             
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
@@ -245,11 +250,53 @@ class GistManager:
                            f'Assign issue {repo_name}#{issue_number} to {username}'], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
-            print(f"✓ Assigned issue to {username} (manual={manual})")
+            print(f"✓ Assigned issue to {username}")
             return True
         
         except Exception as e:
             print(f"✗ Error assigning issue: {e}")
+            return False
+    
+    def add_manual_assignment(self, username: str, repo_name: str,
+                            issue_number: int, assigned_at: str) -> bool:
+        """Add manual assignment (no deadline tracking)."""
+        try:
+            self.clone_repo()
+            filepath = self.get_toml_path(username)
+            
+            with open(filepath, 'r') as f:
+                data = toml.load(f)
+            
+            # Initialize arrays if not present
+            if 'assignments' not in data:
+                data['assignments'] = []
+            if 'manual_assignments' not in data:
+                data['manual_assignments'] = []
+            
+            # Add to manual_assignments array
+            new_assignment = {
+                'issue_url': f"{repo_name}#{issue_number}",
+                'assigned_at': assigned_at
+            }
+            data['manual_assignments'].append(new_assignment)
+            
+            # Update assigned status
+            total_assignments = len(data['assignments']) + len(data['manual_assignments'])
+            data['status']['assigned'] = total_assignments > 0
+            
+            with open(filepath, 'w') as f:
+                toml.dump(data, f)
+            
+            subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
+            subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
+                           f'Manual assign issue {repo_name}#{issue_number} to {username}'], check=True)
+            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            print(f"✓ Added manual assignment to {username}")
+            return True
+        
+        except Exception as e:
+            print(f"✗ Error adding manual assignment: {e}")
             return False
 
 
@@ -257,7 +304,7 @@ def main():
     parser = argparse.ArgumentParser(description='Manage contributor TOML files in Gist')
     parser.add_argument('--action', required=True,
                        choices=['create', 'update_pr', 'promote_to_sentinel',
-                               'assign_issue_to_sentinel'])
+                               'assign_issue_to_sentinel', 'add_manual_assignment'])
     parser.add_argument('--gist-pat', required=True, help='Gist PAT')
     parser.add_argument('--username', help='GitHub username')
     parser.add_argument('--discord-id', help='Discord user ID')
@@ -293,6 +340,10 @@ def main():
         elif args.action == 'assign_issue_to_sentinel':
             manager.assign_issue_to_sentinel(args.username, args.repo_name,
                                             args.issue_number, args.assigned_at)
+        
+        elif args.action == 'add_manual_assignment':
+            manager.add_manual_assignment(args.username, args.repo_name,
+                                         args.issue_number, args.assigned_at)
         
         print("✓ Gist operation completed")
     

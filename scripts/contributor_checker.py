@@ -214,6 +214,29 @@ def main():
     
     args = parser.parse_args()
     
+    # Validate required arguments based on action
+    if args.action == 'check_exists':
+        if not args.pr_author:
+            parser.error("--pr-author is required for check_exists")
+        if not args.gist_pat:
+            parser.error("--gist-pat is required for check_exists")
+    
+    elif args.action == 'check_response':
+        if not args.repo_name:
+            parser.error("--repo-name is required for check_response")
+        if not args.pr_number:
+            parser.error("--pr-number is required for check_response")
+        if not args.pr_author:
+            parser.error("--pr-author is required for check_response")
+        if not args.github_token:
+            parser.error("--github-token is required for check_response")
+    
+    elif args.action == 'check_promotion':
+        if not args.pr_author:
+            parser.error("--pr-author is required for check_promotion")
+        if not args.gist_pat:
+            parser.error("--gist-pat is required for check_promotion")
+    
     try:
         if args.action == 'check_exists':
             result = check_contributor_exists(args.pr_author, args.gist_pat)

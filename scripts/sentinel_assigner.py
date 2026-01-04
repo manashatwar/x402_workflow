@@ -102,7 +102,7 @@ def find_available_sentinel(gist_pat: str, max_concurrent: int = 1) -> Optional[
 
 
 def assign_issue_to_sentinel(repo_name: str, issue_number: int, 
-                             sentinel_username: str, github_token: str):
+                             sentinel_username: str, github_token: str) -> bool:
     """
     Assign GitHub issue to Sentinel.
     
@@ -120,13 +120,14 @@ def assign_issue_to_sentinel(repo_name: str, issue_number: int,
         issue.add_to_assignees(sentinel_username)
         
         print(f"✓ Assigned issue #{issue_number} to {sentinel_username}")
+        return True
     
     except Exception as e:
         print(f"Error assigning issue: {e}")
-        raise
+        return False
 
 
-def add_deadline_label(repo_name: str, issue_number: int, github_token: str):
+def add_deadline_label(repo_name: str, issue_number: int, github_token: str) -> bool:
     """
     Add deadline label to issue.
     
@@ -149,9 +150,11 @@ def add_deadline_label(repo_name: str, issue_number: int, github_token: str):
         issue.add_to_labels(label_name)
         
         print(f"✓ Added deadline label: {label_name}")
+        return True
     
     except Exception as e:
         print(f"Error adding deadline label: {e}")
+        return False
 
 
 def main():
@@ -167,6 +170,29 @@ def main():
     parser.add_argument('--output-file', default='output.json')
     
     args = parser.parse_args()
+    
+    # Validate required arguments based on action
+    if args.action == 'find_available':
+        if not args.gist_pat:
+            parser.error("--gist-pat is required for find_available")
+    
+    elif args.action == 'assign_issue':
+        if not args.repo_name:
+            parser.error("--repo-name is required for assign_issue")
+        if not args.issue_number:
+            parser.error("--issue-number is required for assign_issue")
+        if not args.sentinel_username:
+            parser.error("--sentinel-username is required for assign_issue")
+        if not args.github_token:
+            parser.error("--github-token is required for assign_issue")
+    
+    elif args.action == 'add_deadline_label':
+        if not args.repo_name:
+            parser.error("--repo-name is required for add_deadline_label")
+        if not args.issue_number:
+            parser.error("--issue-number is required for add_deadline_label")
+        if not args.github_token:
+            parser.error("--github-token is required for add_deadline_label")
     
     try:
         if args.action == 'find_available':

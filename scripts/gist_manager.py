@@ -119,11 +119,24 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
-            # Git commit and push
+            # Git commit and push with retry logic
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m', 
                            f'Add contributor: {username}'], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            # Retry push with pull if conflict occurs
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+                    break
+                except subprocess.CalledProcessError:
+                    if attempt < max_retries - 1:
+                        print(f"Push failed, attempting pull and retry (attempt {attempt + 1})...")
+                        subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase'], check=True)
+                    else:
+                        print(f"✗ Failed to push after {max_retries} attempts")
+                        raise
             
             print(f"✓ Created contributor: {username}")
             return True
@@ -187,11 +200,24 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
-            # Git commit and push
+            # Git commit and push with retry logic
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Update {username}: PR #{pr_number}'], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            # Retry push with pull if conflict occurs
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+                    break
+                except subprocess.CalledProcessError:
+                    if attempt < max_retries - 1:
+                        print(f"Push failed, attempting pull and retry (attempt {attempt + 1})...")
+                        subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase'], check=True)
+                    else:
+                        print(f"✗ Failed to push after {max_retries} attempts")
+                        raise
             
             print(f"✓ Updated stats for {username}")
             return True
@@ -214,10 +240,24 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with retry logic
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Promote {username} to Sentinel'], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            # Retry push with pull if conflict occurs
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+                    break
+                except subprocess.CalledProcessError:
+                    if attempt < max_retries - 1:
+                        print(f"Push failed, attempting pull and retry (attempt {attempt + 1})...")
+                        subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase'], check=True)
+                    else:
+                        print(f"✗ Failed to push after {max_retries} attempts")
+                        raise
             
             print(f"✓ Promoted {username} to Sentinel")
             return True
@@ -260,10 +300,24 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with retry logic
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Assign issue {repo_name}#{issue_number} to {username}'], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            # Retry push with pull if conflict occurs
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+                    break
+                except subprocess.CalledProcessError:
+                    if attempt < max_retries - 1:
+                        print(f"Push failed, attempting pull and retry (attempt {attempt + 1})...")
+                        subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase'], check=True)
+                    else:
+                        print(f"✗ Failed to push after {max_retries} attempts")
+                        raise
             
             print(f"✓ Assigned issue to {username}")
             return True
@@ -302,10 +356,24 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with retry logic
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Manual assign issue {repo_name}#{issue_number} to {username}'], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+            
+            # Retry push with pull if conflict occurs
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
+                    break
+                except subprocess.CalledProcessError:
+                    if attempt < max_retries - 1:
+                        print(f"Push failed, attempting pull and retry (attempt {attempt + 1})...")
+                        subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase'], check=True)
+                    else:
+                        print(f"✗ Failed to push after {max_retries} attempts")
+                        raise
             
             print(f"✓ Added manual assignment to {username}")
             return True
@@ -335,6 +403,38 @@ def main():
     parser.add_argument('--counts-toward-promotion', help='Does PR count?', default='true')
     
     args = parser.parse_args()
+    
+    # Validate required arguments based on action
+    if not args.gist_pat:
+        parser.error("--gist-pat is required")
+    if not args.username:
+        parser.error("--username is required")
+    
+    if args.action == 'create':
+        if not args.discord_id:
+            parser.error("--discord-id is required for create")
+        if not args.wallet:
+            parser.error("--wallet is required for create")
+        if not args.repo_name:
+            parser.error("--repo-name is required for create")
+        if not args.pr_number:
+            parser.error("--pr-number is required for create")
+    
+    elif args.action == 'update_pr':
+        if not args.repo_name:
+            parser.error("--repo-name is required for update_pr")
+        if not args.pr_number:
+            parser.error("--pr-number is required for update_pr")
+        if not args.lines_changed:
+            parser.error("--lines-changed is required for update_pr")
+    
+    elif args.action in ['assign_issue_to_sentinel', 'add_manual_assignment']:
+        if not args.repo_name:
+            parser.error("--repo-name is required")
+        if not args.issue_number:
+            parser.error("--issue-number is required")
+        if not args.assigned_at:
+            parser.error("--assigned-at is required")
     
     try:
         manager = GistManager(args.gist_pat)

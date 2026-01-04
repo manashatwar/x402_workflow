@@ -57,12 +57,8 @@ jobs:
         env:
           GIST_PAT: ${{ secrets.GIST_PAT }}
           PR_AUTHOR: ${{ inputs.pr_author }}
-        run: |          # Verify secret is provided
-          if [ -z "$GIST_PAT" ]; then
-            echo "::error::GIST_PAT secret is not configured"
-            exit 1
-          fi
-                    cd automation
+        run: |
+          cd automation
           python scripts/contributor_checker.py \
             --action check_exists \
             --pr-author "$PR_AUTHOR" \

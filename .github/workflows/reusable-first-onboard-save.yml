@@ -121,62 +121,34 @@ jobs:
       # Assign Apprentice role via Discord API
       - name: Assign Discord Apprentice role
         if: steps.check_existing.outputs.exists == 'false'
-        id: assign_role
-        continue-on-error: true
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
           DISCORD_ROLE_ID: ${{ secrets.DISCORD_APPRENTICE_ROLE_ID }}
           DISCORD_USER_ID: ${{ inputs.discord_id }}
         run: |
-          cd automation
-          python scripts/discord_manager.py \
-            --action assign_role \
-            --discord-user-id "$DISCORD_USER_ID" \
-            --role-id "$DISCORD_ROLE_ID" \
-            --guild-id "$DISCORD_GUILD_ID" \
-            --bot-token "$DISCORD_BOT_TOKEN"
+          curl -f -X PUT \
+            -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+            "https://discord.com/api/v10/guilds/$DISCORD_GUILD_ID/members/$DISCORD_USER_ID/roles/$DISCORD_ROLE_ID"
       
       # Comment on PR to confirm onboarding and explain next steps
       - name: Post success message
         if: steps.check_existing.outputs.exists == 'false'
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@v7
         with:
           script: |
-            const roleSuccess = '${{ steps.assign_role.outcome }}' === 'success';
-            
-            let body;
-            if (roleSuccess) {
-              body = [
-                "✅ **Onboarding Complete!**",
-                "",
-                `@${{ inputs.pr_author }}, you've been successfully onboarded as an **Apprentice**!`,
-                "",
-                "**Next Steps:**",
-                "- Check Discord for your new Apprentice role",
-                "- Submit 3 quality PRs to be promoted to **Sentinel**",
-                "- As a Sentinel, you'll get assigned issues with 5-day deadlines",
-                "",
-                "Happy contributing! 🚀"
-              ].join("\\n");
-            } else {
-              body = [
-                "⚠️ **Onboarding Partially Complete**",
-                "",
-                `@${{ inputs.pr_author }}, your Gist entry was created successfully, but Discord role assignment failed.`,
-                "",
-                "**Possible reasons:**",
-                "- You're not in the Discord server yet",
-                "- Invalid Discord ID",
-                "- Bot permission issues",
-                "",
-                "**Please:**",
-                "1. Join the Discord server if you haven't",
-                "2. Contact a maintainer for manual role assignment",
-                "",
-                "Your contributor profile is ready - you just need the Discord role!"
-              ].join("\\n");
-            }
+            const body = [
+              "✅ **Onboarding Complete!**",
+              "",
+              `@${{ inputs.pr_author }}, you've been successfully onboarded as an **Apprentice**!`,
+              "",
+              "**Next Steps:**",
+              "- Check Discord for your new Apprentice role",
+              "- Submit 3 quality PRs to be promoted to **Sentinel**",
+              "- As a Sentinel, you'll get assigned issues with 5-day deadlines",
+              "",
+              "Happy contributing! 🚀"
+            ].join("\\n");
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,

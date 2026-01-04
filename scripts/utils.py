@@ -177,9 +177,6 @@ def retry_with_backoff(func, max_retries: int = 3, backoff_seconds: List[int] = 
     - Network timeouts
     - Rate limits
     - Temporary API outages
-    
-    Returns:
-        The result of the function call
     """
     for attempt in range(max_retries):
         try:
@@ -281,7 +278,7 @@ def get_time_remaining(deadline: str) -> Dict[str, Any]:
     }
 
 
-def write_output_file(filename: str, data: Dict[str, Any]) -> None:
+def write_output_file(filename: str, data: Dict[str, Any]):
     """Write data to JSON output file."""
     with open(filename, 'w') as f:
         json.dump(data, f, indent=2)

@@ -117,7 +117,7 @@ class DiscordManager:
             return False
 
 
-def ask_for_info(repo_name: str, pr_number: int, pr_author: str, github_token: str) -> bool:
+def ask_for_info(repo_name: str, pr_number: int, pr_author: str, github_token: str):
     """Post comment asking for Discord ID and wallet."""
     messages = load_error_messages()
     
@@ -154,15 +154,13 @@ Reply to this comment with your information. ✅
         pr = repo.get_pull(pr_number)
         pr.create_issue_comment(comment)
         print(f"✓ Posted info request to PR #{pr_number}")
-        return True
     
     except Exception as e:
         print(f"Error posting comment: {e}")
-        return False
 
 
 def post_success_message(repo_name: str, pr_number: int, pr_author: str, 
-                        github_token: str, message_type: str) -> bool:
+                        github_token: str, message_type: str):
     """Post success message to PR."""
     messages = load_error_messages()
     template = messages['success'].get(message_type, '')
@@ -175,11 +173,9 @@ def post_success_message(repo_name: str, pr_number: int, pr_author: str,
         pr = repo.get_pull(pr_number)
         pr.create_issue_comment(message)
         print(f"✓ Posted success message to PR #{pr_number}")
-        return True
     
     except Exception as e:
         print(f"Error posting success message: {e}")
-        return False
 
 
 def main():
@@ -211,39 +207,6 @@ def main():
     parser.add_argument('--warnings', type=int, default=0)
     
     args = parser.parse_args()
-    
-    # Validate required arguments based on action
-    if args.action in ['assign_role', 'remove_role']:
-        if not args.bot_token:
-            parser.error("--bot-token is required")
-        if not args.guild_id:
-            parser.error("--guild-id is required")
-        if not args.discord_user_id:
-            parser.error("--discord-user-id is required")
-        if not args.role_id:
-            parser.error("--role-id is required")
-    
-    elif args.action == 'ask_info':
-        if not args.repo_name:
-            parser.error("--repo-name is required")
-        if not args.pr_number:
-            parser.error("--pr-number is required")
-        if not args.pr_author:
-            parser.error("--pr-author is required")
-        if not args.github_token:
-            parser.error("--github-token is required")
-    
-    elif args.action == 'post_success':
-        if not args.repo_name:
-            parser.error("--repo-name is required")
-        if not args.pr_number:
-            parser.error("--pr-number is required")
-        if not args.pr_author:
-            parser.error("--pr-author is required")
-        if not args.github_token:
-            parser.error("--github-token is required")
-        if not args.message_type:
-            parser.error("--message-type is required")
     
     try:
         if args.action == 'ask_info':

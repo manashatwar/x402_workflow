@@ -86,15 +86,6 @@ def main():
     
     args = parser.parse_args()
     
-    # Validate required arguments based on action
-    if args.action == 'validate_pr_quality':
-        if args.lines_changed is None:
-            parser.error("--lines-changed is required for validate_pr_quality")
-    
-    elif args.action == 'validate_schema':
-        if not args.toml_file:
-            parser.error("--toml-file is required for validate_schema")
-    
     try:
         if args.action == 'validate_pr_quality':
             labels = json.loads(args.labels) if args.labels else []

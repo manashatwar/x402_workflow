@@ -64,19 +64,6 @@ def main():
     
     args = parser.parse_args()
     
-    # Validate required arguments based on action
-    if args.action == 'route':
-        if not args.issue_labels:
-            parser.error("--issue-labels is required for route")
-    
-    elif args.action == 'escalate_to_knights':
-        if not args.repo_name:
-            parser.error("--repo-name is required for escalate_to_knights")
-        if not args.issue_number:
-            parser.error("--issue-number is required for escalate_to_knights")
-        if not args.github_token:
-            parser.error("--github-token is required for escalate_to_knights")
-    
     try:
         if args.action == 'route':
             labels = json.loads(args.issue_labels) if args.issue_labels else []

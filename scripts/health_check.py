@@ -106,67 +106,57 @@ class HealthChecker:
                 'error': str(e)
             }
     
-    def free_sentinel(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]) -> bool:
+    def free_sentinel(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]):
         """Free Sentinel from a specific assignment."""
-        try:
-            data = sentinel['data']
-            
-            # Remove from assignments array
-            if 'assignments' in data:
-                data['assignments'] = [a for a in data['assignments'] 
-                                      if a.get('issue_url') != assignment.get('issue_url')]
-            
-            # Update assigned status based on total remaining assignments
-            total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
-            data['status']['assigned'] = total_assignments > 0
-            
-            # Update stats
-            stats = data.get('stats', {})
-            stats['issues_resolved'] = stats.get('issues_resolved', 0) + 1
-            data['stats'] = stats
-            
-            # Write back
-            with open(sentinel['filepath'], 'w') as f:
-                toml.dump(data, f)
-            
-            self.freed_count += 1
-            print(f"✓ Freed Sentinel {sentinel['username']} from {assignment.get('issue_url', '')}")
-            return True
-        except Exception as e:
-            print(f"✗ Error freeing sentinel: {e}")
-            return False
+        data = sentinel['data']
+        
+        # Remove from assignments array
+        if 'assignments' in data:
+            data['assignments'] = [a for a in data['assignments'] 
+                                  if a.get('issue_url') != assignment.get('issue_url')]
+        
+        # Update assigned status based on total remaining assignments
+        total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
+        data['status']['assigned'] = total_assignments > 0
+        
+        # Update stats
+        stats = data.get('stats', {})
+        stats['issues_resolved'] = stats.get('issues_resolved', 0) + 1
+        data['stats'] = stats
+        
+        # Write back
+        with open(sentinel['filepath'], 'w') as f:
+            toml.dump(data, f)
+        
+        self.freed_count += 1
+        print(f"✓ Freed Sentinel {sentinel['username']} from {assignment.get('issue_url', '')}")
     
-    def reassign_issue(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]) -> bool:
+    def reassign_issue(self, sentinel: Dict[str, Any], assignment: Dict[str, Any]):
         """Reassign overdue issue to another Sentinel."""
-        try:
-            data = sentinel['data']
-            issue_url = assignment.get('issue_url', '')
-            
-            # Update stale count
-            stats = data.get('stats', {})
-            stats['issues_stale'] = stats.get('issues_stale', 0) + 1
-            data['stats'] = stats
-            
-            # Remove from assignments array
-            if 'assignments' in data:
-                data['assignments'] = [a for a in data['assignments'] 
-                                      if a.get('issue_url') != issue_url]
-            
-            # Update assigned status
-            total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
-            data['status']['assigned'] = total_assignments > 0
-            
-            with open(sentinel['filepath'], 'w') as f:
-                toml.dump(data, f)
-            
-            self.reassigned_count += 1
-            print(f"✓ Reassigned issue {issue_url} from {sentinel['username']}")
-            return True
-        except Exception as e:
-            print(f"✗ Error reassigning issue: {e}")
-            return False
+        data = sentinel['data']
+        issue_url = assignment.get('issue_url', '')
+        
+        # Update stale count
+        stats = data.get('stats', {})
+        stats['issues_stale'] = stats.get('issues_stale', 0) + 1
+        data['stats'] = stats
+        
+        # Remove from assignments array
+        if 'assignments' in data:
+            data['assignments'] = [a for a in data['assignments'] 
+                                  if a.get('issue_url') != issue_url]
+        
+        # Update assigned status
+        total_assignments = len(data.get('assignments', [])) + len(data.get('manual_assignments', []))
+        data['status']['assigned'] = total_assignments > 0
+        
+        with open(sentinel['filepath'], 'w') as f:
+            toml.dump(data, f)
+        
+        self.reassigned_count += 1
+        print(f"✓ Reassigned issue {issue_url} from {sentinel['username']}")
     
-    def process_sentinel(self, sentinel: Dict[str, Any]) -> None:
+    def process_sentinel(self, sentinel: Dict[str, Any]):
         """
         Process single Sentinel health check for all auto-assignments.
         Skips manual_assignments (no deadline tracking).
@@ -226,7 +216,7 @@ class HealthChecker:
                 self.send_deadline_warning(sentinel, issue_status.get('issue'), time_info)
                 self.warnings_sent += 1
     
-    def send_deadline_warning(self, sentinel: Dict[str, Any], issue, time_info: Dict[str, Any]) -> bool:
+    def send_deadline_warning(self, sentinel: Dict[str, Any], issue, time_info: Dict[str, Any]):
         """Send deadline approaching warning (3 days before)."""
         try:
             if issue:
@@ -245,12 +235,9 @@ Need help? Add `help-wanted` label or reach out in Discord.
 Unexpected complexity? Ask a Knight to add `time-taken` label for extended time."""
                 
                 issue.create_comment(comment)
-                return True
-            return False
         
         except Exception as e:
             print(f"Error sending warning: {e}")
-            return False
     
     def run_health_check(self) -> Dict[str, Any]:
         """
@@ -295,12 +282,6 @@ def main():
     parser.add_argument('--output-file', default='health_report.json')
     
     args = parser.parse_args()
-    
-    # Validate required arguments
-    if not args.gist_pat:
-        parser.error("--gist-pat is required")
-    if not args.github_token:
-        parser.error("--github-token is required")
     
     try:
         checker = HealthChecker(args.gist_pat, args.github_token)

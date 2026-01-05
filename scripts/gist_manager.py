@@ -38,19 +38,18 @@ class GistManager:
     def clone_repo(self):
         """Clone or pull latest from Gist repository to temp directory."""
         import tempfile
+        import shutil
         
         self.repo_dir = os.path.join(tempfile.gettempdir(), 'aossie_gist_repo')
-        auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
         
+        # Always remove existing repo and do fresh clone with authentication
+        # This prevents credential caching issues
         if os.path.exists(self.repo_dir):
-            # Set auth URL before pull
-            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], 
-                          check=True, capture_output=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'pull'], 
-                          check=True, capture_output=True)
-        else:
-            subprocess.run(['git', 'clone', auth_url, self.repo_dir], 
-                          check=True, capture_output=True)
+            shutil.rmtree(self.repo_dir)
+        
+        auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+        subprocess.run(['git', 'clone', auth_url, self.repo_dir], 
+                      check=True, capture_output=True)
     
     def get_toml_path(self, username: str) -> str:
         """Get path to user's TOML file."""
@@ -71,7 +70,8 @@ class GistManager:
         Edge cases:
         - File already exists (skip)
         - Invalid data
-        - Git push conflicts
+        - Git push conflicts(giong)
+        here we handle all these
         """
         try:
             self.clone_repo()
@@ -126,8 +126,7 @@ class GistManager:
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m', 
                            f'Add contributor: {username}'], check=True)
-            
-            # Set up authenticated push URL
+                        # Set up authenticated push URL
             auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
             subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)

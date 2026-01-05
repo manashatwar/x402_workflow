@@ -40,12 +40,15 @@ class GistManager:
         import tempfile
         
         self.repo_dir = os.path.join(tempfile.gettempdir(), 'aossie_gist_repo')
+        auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
         
         if os.path.exists(self.repo_dir):
+            # Set auth URL before pull
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], 
+                          check=True, capture_output=True)
             subprocess.run(['git', '-C', self.repo_dir, 'pull'], 
                           check=True, capture_output=True)
         else:
-            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
             subprocess.run(['git', 'clone', auth_url, self.repo_dir], 
                           check=True, capture_output=True)
     

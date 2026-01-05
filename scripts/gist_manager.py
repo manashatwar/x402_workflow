@@ -199,18 +199,13 @@ class GistManager:
                 toml.dump(data, f)
             
             # Git commit and push with authentication
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Update {username}: PR #{pr_number}'], check=True)
-            
-            # Set up authenticated push URL
-            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
-            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase', 'origin', 'main'], check=True)
-            
-            # Re-set auth URL after rebase (rebase may strip credentials)
-            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
-            subprocess.run(['git', '-C', self.repo_dir, 'push', 'origin', 'main'], check=True)
+            subprocess.run(['git', '-C', self.repo_dir, 'pull', '--rebase', auth_url, 'main'], check=True)
+            subprocess.run(['git', '-C', self.repo_dir, 'push', auth_url, 'main'], check=True)
             
             print(f"✓ Updated stats for {username}")
             return True

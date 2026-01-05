@@ -119,10 +119,14 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
-            # Git commit and push
+            # Git commit and push with authentication
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m', 
                            f'Add contributor: {username}'], check=True)
+            
+            # Set up authenticated push URL
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
             print(f"✓ Created contributor: {username}")
@@ -187,10 +191,14 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
-            # Git commit and push
+            # Git commit and push with authentication
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Update {username}: PR #{pr_number}'], check=True)
+            
+            # Set up authenticated push URL
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
             print(f"✓ Updated stats for {username}")
@@ -214,9 +222,14 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with authentication
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Promote {username} to Sentinel'], check=True)
+            
+            # Set up authenticated push URL
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
             print(f"✓ Promoted {username} to Sentinel")
@@ -260,9 +273,14 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with authentication
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Assign issue {repo_name}#{issue_number} to {username}'], check=True)
+            
+            # Set up authenticated push URL
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
             print(f"✓ Assigned issue to {username}")
@@ -302,9 +320,14 @@ class GistManager:
             with open(filepath, 'w') as f:
                 toml.dump(data, f)
             
+            # Git commit and push with authentication
             subprocess.run(['git', '-C', self.repo_dir, 'add', filepath], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'commit', '-m',
                            f'Manual assign issue {repo_name}#{issue_number} to {username}'], check=True)
+            
+            # Set up authenticated push URL
+            auth_url = self.gist_url.replace('https://', f'https://{self.gist_pat}@')
+            subprocess.run(['git', '-C', self.repo_dir, 'remote', 'set-url', 'origin', auth_url], check=True)
             subprocess.run(['git', '-C', self.repo_dir, 'push'], check=True)
             
             print(f"✓ Added manual assignment to {username}")

@@ -30,6 +30,8 @@ class GistManager:
     Handles cloning, updating, and committing changes.
     """
     def __init__(self, gist_pat: str):
+        if not gist_pat or gist_pat.strip() == '':
+            raise ValueError("GIST_PAT is empty or not provided")
         self.gist_pat = gist_pat
         self.config = load_config()
         self.gist_url = self.config['gist']['registry_url']

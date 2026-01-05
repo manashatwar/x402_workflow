@@ -372,19 +372,27 @@ def main():
             import json
             labels = json.loads(args.labels) if args.labels else []
             counts = args.counts_toward_promotion.lower() == 'true'
-            manager.update_pr_stats(args.username, args.repo_name, args.pr_number,
+            success = manager.update_pr_stats(args.username, args.repo_name, args.pr_number,
                                    args.lines_changed, labels, counts)
+            if not success:
+                sys.exit(1)
         
         elif args.action == 'promote_to_sentinel':
-            manager.promote_to_sentinel(args.username)
+            success = manager.promote_to_sentinel(args.username)
+            if not success:
+                sys.exit(1)
         
         elif args.action == 'assign_issue_to_sentinel':
-            manager.assign_issue_to_sentinel(args.username, args.repo_name,
+            success = manager.assign_issue_to_sentinel(args.username, args.repo_name,
                                             args.issue_number, args.assigned_at)
+            if not success:
+                sys.exit(1)
         
         elif args.action == 'add_manual_assignment':
-            manager.add_manual_assignment(args.username, args.repo_name,
+            success = manager.add_manual_assignment(args.username, args.repo_name,
                                          args.issue_number, args.assigned_at)
+            if not success:
+                sys.exit(1)
         
         print("✓ Gist operation completed")
     

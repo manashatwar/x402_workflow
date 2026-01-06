@@ -61,7 +61,7 @@ announcement_channel = "announcements"
 
 [gist]
 # Central registry Gist URL
-registry_url = "https://gist.github.com/499740a475592025478e29d47c7138da.git"
+registry_url = "https://gist.github.com/dbc9b06c84df62d4f63d5baafa0e4d23.git"
 # TOML schema version
 schema_version = 1
 # Filename pattern

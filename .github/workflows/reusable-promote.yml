@@ -104,30 +104,40 @@ jobs:
           PR_AUTHOR: ${{ inputs.pr_author }}
         run: |
           cd automation
+          echo "Promoting $PR_AUTHOR to Sentinel in registry..."
+          
           python scripts/gist_manager.py \
             --action promote_to_sentinel \
             --username "$PR_AUTHOR" \
             --gist-pat "$GIST_PAT"
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Role updated to Sentinel in TOML registry"
+          else
+            echo "✗ Failed to update TOML. Discord role assignment will be skipped."
+            exit 1
+          fi
             
-      - name: Remove Apprentice role from Discord
-        if: steps.check_eligibility.outputs.eligible == 'true'
-        continue-on-error: true
-        env:
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-          DISCORD_ROLE_ID: ${{ secrets.DISCORD_APPRENTICE_ROLE_ID }}
-          DISCORD_USER_ID: ${{ steps.check_eligibility.outputs.discord_id }}
-        run: |
-          cd automation
-          python scripts/discord_manager.py \
-            --action remove_role \
-            --discord-user-id "$DISCORD_USER_ID" \
-            --role-id "$DISCORD_ROLE_ID" \
-            --guild-id "$DISCORD_GUILD_ID" \
-            --bot-token "$DISCORD_BOT_TOKEN"
+      # - name: Remove Apprentice role from Discord
+      #   if: steps.check_eligibility.outputs.eligible == 'true'
+      #   continue-on-error: true
+      #   env:
+      #     DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      #     DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+      #     DISCORD_ROLE_ID: ${{ secrets.DISCORD_APPRENTICE_ROLE_ID }}
+      #     DISCORD_USER_ID: ${{ steps.check_eligibility.outputs.discord_id }}
+      #   run: |
+      #     cd automation
+      #     python scripts/discord_manager.py \
+      #       --action remove_role \
+      #       --discord-user-id "$DISCORD_USER_ID" \
+      #       --role-id "$DISCORD_ROLE_ID" \
+      #       --guild-id "$DISCORD_GUILD_ID" \
+      #       --bot-token "$DISCORD_BOT_TOKEN"
             
       - name: Assign Sentinel role on Discord
         if: steps.check_eligibility.outputs.eligible == 'true'
+        continue-on-error: true
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
@@ -135,43 +145,58 @@ jobs:
           DISCORD_USER_ID: ${{ steps.check_eligibility.outputs.discord_id }}
         run: |
           cd automation
+          
+          # Validate Discord ID exists
+          if [ -z "$DISCORD_USER_ID" ] || [ "$DISCORD_USER_ID" = "null" ]; then
+            echo "⚠️ Warning: No Discord ID found for user. Skipping Discord role assignment."
+            echo "User can still use the system, but won't have Discord Sentinel role."
+            exit 0
+          fi
+          
+          echo "Assigning Sentinel role to Discord user: $DISCORD_USER_ID"
           python scripts/discord_manager.py \
             --action assign_role \
             --discord-user-id "$DISCORD_USER_ID" \
             --role-id "$DISCORD_ROLE_ID" \
             --guild-id "$DISCORD_GUILD_ID" \
             --bot-token "$DISCORD_BOT_TOKEN"
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Sentinel role assigned successfully (Apprentice role preserved)"
+          else
+            echo "⚠️ Failed to assign Discord role, but promotion in TOML succeeded"
+          fi
             
-      - name: Post promotion announcement
-        if: steps.check_eligibility.outputs.eligible == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_NAME: ${{ inputs.repo_name }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_AUTHOR: ${{ inputs.pr_author }}
-          PR_COUNT: ${{ steps.check_eligibility.outputs.pr_count }}
-        run: |
-          cd automation
-          python scripts/discord_manager.py \
-            --action post_promotion \
-            --repo-name "$REPO_NAME" \
-            --pr-number "$PR_NUMBER" \
-            --pr-author "$PR_AUTHOR" \
-            --pr-count "$PR_COUNT" \
-            --github-token "$GITHUB_TOKEN"
+      # - name: Post promotion announcement
+      #   if: steps.check_eligibility.outputs.eligible == 'true'
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     REPO_NAME: ${{ inputs.repo_name }}
+      #     PR_NUMBER: ${{ inputs.pr_number }}
+      #     PR_AUTHOR: ${{ inputs.pr_author }}
+      #     PR_COUNT: ${{ steps.check_eligibility.outputs.pr_count }}
+      #   run: |
+      #     cd automation
+      #     python scripts/discord_manager.py \
+      #       --action post_promotion \
+      #       --repo-name "$REPO_NAME" \
+      #       --pr-number "$PR_NUMBER" \
+      #       --pr-author "$PR_AUTHOR" \
+      #       --pr-count "$PR_COUNT" \
+      #       --github-token "$GITHUB_TOKEN"
             
-      - name: Announce in Discord
-        if: steps.check_eligibility.outputs.eligible == 'true'
-        env:
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_USER_ID: ${{ steps.check_eligibility.outputs.discord_id }}
-          PR_AUTHOR: ${{ inputs.pr_author }}
-          PR_COUNT: ${{ steps.check_eligibility.outputs.pr_count }}
-        run: |
-          cd automation
-          python scripts/discord_manager.py \
-            --action announce_promotion \
-            --discord-user-id "$DISCORD_USER_ID" \
-            --username "$PR_AUTHOR" \
-            --pr-count "$PR_COUNT" \
-            --bot-token "$DISCORD_BOT_TOKEN"
+      # - name: Announce in Discord
+      #   if: steps.check_eligibility.outputs.eligible == 'true'
+      #   env:
+      #     DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      #     DISCORD_USER_ID: ${{ steps.check_eligibility.outputs.discord_id }}
+      #     PR_AUTHOR: ${{ inputs.pr_author }}
+      #     PR_COUNT: ${{ steps.check_eligibility.outputs.pr_count }}
+      #   run: |
+      #     cd automation
+      #     python scripts/discord_manager.py \
+      #       --action announce_promotion \
+      #       --discord-user-id "$DISCORD_USER_ID" \
+      #       --username "$PR_AUTHOR" \
+      #       --pr-count "$PR_COUNT" \
+      #       --bot-token "$DISCORD_BOT_TOKEN"

@@ -4,9 +4,9 @@
 # Number of successful PRs required for Sentinel promotion
 threshold = 3
 # Minimum average lines changed per PR to count toward promotion
-min_avg_lines = 10
+min_avg_lines = 1
 # Minimum hours between PRs to prevent spam
-min_hours_between_prs = 48
+ min_hours_between_prs = 1 (future)
 
 [sentinel]
 # Days to resolve assigned issue
@@ -18,7 +18,7 @@ use_business_days = true
 
 [onboarding]
 # Days to wait for Discord/wallet response before creating partial TOML
-response_timeout_days = 7
+response_timeout_days = 7 (fture)
 # Discord ID validation (must be 17-19 digit numeric)
 discord_id_length_min = 17
 discord_id_length_max = 19
@@ -34,7 +34,7 @@ reassign_after_days = 5
 # Alert Knights if Sentinel has more than this many stale issues
 stale_issue_alert_threshold = 2
 
-[rate_limits]
+[rate_limits] (all for future scoped)
 # Maximum new onboards per day (spam prevention)
 max_onboards_per_day = 10
 # Discord API rate limit (roles per second)

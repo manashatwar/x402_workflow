@@ -123,25 +123,25 @@ jobs:
           echo "counts=$COUNTS" >> $GITHUB_OUTPUT
           echo "lines_changed=$LINES_CHANGED" >> $GITHUB_OUTPUT
       
-      # Update the contributor's TOML entry in Gist with new PR data
-      - name: Update contributor TOML
-        if: steps.check.outputs.exists == 'true'
-        env:
-          GIST_PAT: ${{ secrets.GIST_PAT }}
-          PR_AUTHOR: ${{ inputs.pr_author }}
-          REPO_NAME: ${{ inputs.repo_name }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          LINES_CHANGED: ${{ steps.validate_quality.outputs.lines_changed }}
-          PR_LABELS: ${{ inputs.pr_labels }}
-          COUNTS: ${{ steps.validate_quality.outputs.counts }}
-        run: |
-          cd automation
-          python scripts/gist_manager.py \
-            --action update_pr \
-            --username "$PR_AUTHOR" \
-            --repo-name "$REPO_NAME" \
-            --pr-number "$PR_NUMBER" \
-            --lines-changed "$LINES_CHANGED" \
-            --labels "$PR_LABELS" \
-            --counts-toward-promotion "$COUNTS" \
-            --gist-pat "$GIST_PAT"
+      # # Update the contributor's TOML entry in Gist with new PR data
+      # - name: Update contributor TOML
+      #   if: steps.check.outputs.exists == 'true'
+      #   env:
+      #     GIST_PAT: ${{ secrets.GIST_PAT }}
+      #     PR_AUTHOR: ${{ inputs.pr_author }}
+      #     REPO_NAME: ${{ inputs.repo_name }}
+      #     PR_NUMBER: ${{ inputs.pr_number }}
+      #     LINES_CHANGED: ${{ steps.validate_quality.outputs.lines_changed }}
+      #     PR_LABELS: ${{ inputs.pr_labels }}
+      #     COUNTS: ${{ steps.validate_quality.outputs.counts }}
+      #   run: |
+      #     cd automation
+      #     python scripts/gist_manager.py \
+      #       --action update_pr \
+      #       --username "$PR_AUTHOR" \
+      #       --repo-name "$REPO_NAME" \
+      #       --pr-number "$PR_NUMBER" \
+      #       --lines-changed "$LINES_CHANGED" \
+      #       --labels "$PR_LABELS" \
+      #       --counts-toward-promotion "$COUNTS" \
+      #       --gist-pat "$GIST_PAT"

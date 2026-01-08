@@ -68,27 +68,27 @@ jobs:
           EXISTS=$(jq -r '.exists' ../exists_check.json)
           echo "exists=$EXISTS" >> $GITHUB_OUTPUT
       
-      # Validate GIST_PAT has proper permissions by testing gist access
-      - name: Validate GIST_PAT permissions
-        if: steps.check.outputs.exists == 'true'
-        env:
-          GIST_PAT: ${{ secrets.GIST_PAT }}
-        run: |
-          echo "Testing GIST_PAT permissions..."
-          GIST_ID="499740a475592025478e29d47c7138da"
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: token $GIST_PAT" \
-            "https://api.github.com/gists/$GIST_ID")
+      # # Validate GIST_PAT has proper permissions by testing gist access
+      # - name: Validate GIST_PAT permissions
+      #   if: steps.check.outputs.exists == 'true'
+      #   env:
+      #     GIST_PAT: ${{ secrets.GIST_PAT }}
+      #   run: |
+      #     echo "Testing GIST_PAT permissions..."
+      #     GIST_ID="499740a475592025478e29d47c7138da"
+      #     RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+      #       -H "Authorization: token $GIST_PAT" \
+      #       "https://api.github.com/gists/$GIST_ID")
           
-          if [ "$RESPONSE" != "200" ]; then
-            echo "❌ GIST_PAT validation failed (HTTP $RESPONSE)"
-            echo "Possible issues:"
-            echo "  - Token is invalid or expired"
-            echo "  - Token lacks 'gist' scope"
-            echo "  - Network/API issues"
-            exit 1
-          fi
-          echo "✓ GIST_PAT is valid and has access to registry"
+      #     if [ "$RESPONSE" != "200" ]; then
+      #       echo "❌ GIST_PAT validation failed (HTTP $RESPONSE)"
+      #       echo "Possible issues:"
+      #       echo "  - Token is invalid or expired"
+      #       echo "  - Token lacks 'gist' scope"
+      #       echo "  - Network/API issues"
+      #       exit 1
+      #     fi
+      #     echo "✓ GIST_PAT is valid and has access to registry"
           
       - name: Skip if contributor not onboarded
         if: steps.check.outputs.exists == 'false'

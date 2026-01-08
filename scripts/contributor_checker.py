@@ -66,7 +66,9 @@ def check_contributor_exists(pr_author: str, gist_pat: str) -> Dict[str, Any]:
         Dict with 'exists' bool and 'toml_data' if exists
     """
     try:
+        print(f"Checking for contributor: {pr_author}")
         gist_dir = clone_gist_repo(gist_pat)
+        print(f"Gist cloned to: {gist_dir}")
         
         config = load_config()
         filename_pattern = config['gist']['contributor_file_pattern']
@@ -74,6 +76,13 @@ def check_contributor_exists(pr_author: str, gist_pat: str) -> Dict[str, Any]:
         filename = filename_pattern.replace('{username}', sanitized_username)
         
         filepath = os.path.join(gist_dir, filename)
+        print(f"Looking for file: {filepath}")
+        print(f"File exists: {os.path.exists(filepath)}")
+        
+        # List files in gist directory for debugging
+        if os.path.exists(gist_dir):
+            files = os.listdir(gist_dir)
+            print(f"Files in gist: {files[:10]}")  # Show first 10 files
         
         if os.path.exists(filepath):
             with open(filepath, 'r') as f:
@@ -92,6 +101,8 @@ def check_contributor_exists(pr_author: str, gist_pat: str) -> Dict[str, Any]:
     
     except Exception as e:
         print(f"Error checking contributor: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             'exists': False,
             'error': str(e)

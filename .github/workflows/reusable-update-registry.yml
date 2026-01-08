@@ -65,14 +65,20 @@ jobs:
           PR_AUTHOR: ${{ inputs.pr_author }}
         run: |
           cd automation
+          echo "Checking if contributor exists: $PR_AUTHOR"
+          
           python scripts/contributor_checker.py \
             --action check_exists \
             --pr-author "$PR_AUTHOR" \
             --gist-pat "$GIST_PAT" \
             --output-file ../exists_check.json
           
+          echo "Check result:"
+          cat ../exists_check.json
+          
           EXISTS=$(jq -r '.exists' ../exists_check.json)
           echo "exists=$EXISTS" >> $GITHUB_OUTPUT
+          echo "Contributor exists: $EXISTS"
       
           
       - name: Skip if contributor not onboarded

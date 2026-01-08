@@ -29,9 +29,7 @@ on:
       GIST_PAT:
         required: true
 
-permissions:
-  contents: write
-  pull-requests: read
+permissions: write-all
 
 jobs:
   update:

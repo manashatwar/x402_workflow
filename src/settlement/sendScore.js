@@ -55,15 +55,17 @@ function validateEnv() {
     );
   }
 
-  if (!ethers.isAddress(process.env.SCORE_TOKEN_CONTRACT)) {
+  const contractAddress = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
+  if (!ethers.isAddress(contractAddress)) {
     throw new Error(
-      `Invalid SCORE_TOKEN_CONTRACT address: ${process.env.SCORE_TOKEN_CONTRACT}`
+      `Invalid SCORE_TOKEN_CONTRACT address`
     );
   }
 
-  if (!ethers.isAddress(process.env.RECIPIENT_WALLET)) {
+  const recipientAddress = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+  if (!ethers.isAddress(recipientAddress)) {
     throw new Error(
-      `Invalid RECIPIENT_WALLET address: ${process.env.RECIPIENT_WALLET}`
+      `Invalid RECIPIENT_WALLET address`
     );
   }
 
@@ -102,12 +104,12 @@ async function main() {
 
     validateEnv();
 
-    const recipient = process.env.RECIPIENT_WALLET;
-    const scoreAmount = process.env.SCORE_AMOUNT;
-    const network = process.env.NETWORK;
-    const issueNumber = process.env.ISSUE_NUMBER;
-    const repoName = process.env.REPO_NAME;
-    const tokenContract = process.env.SCORE_TOKEN_CONTRACT;
+    const recipient = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+    const scoreAmount = process.env.SCORE_AMOUNT.trim();
+    const network = process.env.NETWORK.trim();
+    const issueNumber = process.env.ISSUE_NUMBER.trim();
+    const repoName = process.env.REPO_NAME.trim();
+    const tokenContract = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
 
     console.log("Configuration:");
     console.log(`  Network: ${network}`);
@@ -124,7 +126,7 @@ async function main() {
 
     const account = privateKeyToAccount({
       client,
-      privateKey: process.env.SERVER_WALLET,
+      privateKey: process.env.SERVER_WALLET.trim(),
     });
 
     console.log(`📝 Using server wallet: ${account.address}\n`);

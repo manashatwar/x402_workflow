@@ -3,6 +3,49 @@ name: x402 Settlement Demo
 
 on:
   workflow_dispatch:
+    inputs:
+      recipient_wallet:
+        description: "Recipient wallet address"
+        required: true
+        type: string
+        default: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      score_amount:
+        description: "Amount of tokens to mint"
+        required: true
+        type: string
+        default: "100"
+      network:
+        description: "Network to deploy to"
+        required: true
+        type: choice
+        options:
+          - monad-testnet
+          - monad-mainnet
+        default: "monad-testnet"
+      issue_number:
+        description: "GitHub issue number"
+        required: true
+        type: string
+        default: "1"
+      repo_name:
+        description: "Repository name (owner/repo)"
+        required: true
+        type: string
+        default: "manashatwar/x402_workflow"
+      server_wallet:
+        description: "Server wallet private key (0x...)"
+        required: true
+        type: string
+      score_token_contract:
+        description: "Score token contract address"
+        required: true
+        type: string
+        default: "0xFea9868391EaB5204dcac3a4A416366B5F54B3C3"
+      rpc_url:
+        description: "Monad RPC URL"
+        required: true
+        type: string
+        default: "https://testnet.monad.xyz"
 
 jobs:
   x402_settlement_demo:
@@ -25,83 +68,68 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # - name: Validate wallet address
-      #   run: |
-      #     node -e "
-      #     const address = '${{ inputs.recipient_wallet }}';
-      #     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      #       console.error('Invalid Ethereum address format');
-      #       process.exit(1);
-      #     }
-      #     console.log('Address validation passed');
-      #     "
+      - name: Validate wallet addresses
+        run: |
+          node -e "
+          const { ethers } = require('ethers');
+          const recipient = '${{ inputs.recipient_wallet }}';
+          const contract = '${{ inputs.score_token_contract }}';
 
-      # - name: Validate contract address
-      #   run: |
-      #     node -e "
-      #     const address = '${{ secrets.SCORE_TOKEN_CONTRACT }}';
-      #     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      #       console.error('Invalid score token contract address');
-      #       process.exit(1);
-      #     }
-      #     console.log('Score token contract validation passed');
-      #     "
+          if (!ethers.isAddress(recipient)) {
+            console.error('Invalid recipient wallet address');
+            process.exit(1);
+          }
+          if (!ethers.isAddress(contract)) {
+            console.error('Invalid contract address');
+            process.exit(1);
+          }
+          console.log('✅ Address validation passed');
+          "
 
       - name: Execute settlement (Demo)
         id: x402_demo
         env:
           THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }}
-          SERVER_WALLET: ${{ secrets.SERVER_WALLET }}
-          SCORE_TOKEN_CONTRACT: ${{ secrets.SCORE_TOKEN_CONTRACT }}
-          RPC_URL: ${{ secrets.RPC_URL }}
-          RECIPIENT_WALLET: ${{ secrets.RECIPIENT_WALLET }}
-          SCORE_AMOUNT: ${{ secrets.SCORE_AMOUNT }}
-          NETWORK: ${{ secrets.NETWORK }}
-          ISSUE_NUMBER: ${{ secrets.ISSUE_NUMBER }}
-          REPO_NAME: ${{ secrets.REPO_NAME }}
+          SERVER_WALLET: ${{ inputs.server_wallet }}
+          SCORE_TOKEN_CONTRACT: ${{ inputs.score_token_contract }}
+          RPC_URL: ${{ inputs.rpc_url }}
+          RECIPIENT_WALLET: ${{ inputs.recipient_wallet }}
+          SCORE_AMOUNT: ${{ inputs.score_amount }}
+          NETWORK: ${{ inputs.network }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          REPO_NAME: ${{ inputs.repo_name }}
         run: |
           node src/settlement/sendScore.js
           if [ -f "$GITHUB_OUTPUT" ]; then
             cat "$GITHUB_OUTPUT"
           fi
 
-      - name: logging
+      - name: Display settlement summary
         if: success()
         run: |
-          echo "x402 Settlement Completed (Demo, Monad)"
-          echo "Amount: ${{ secrets.SCORE_AMOUNT }} tokens"
-          echo "Recipient: ${{ secrets.RECIPIENT_WALLET }}"
-          echo "Network: ${{ secrets.NETWORK }}"
+          echo "✅ x402 Settlement Completed Successfully!"
+          echo ""
+          echo "Network: ${{ inputs.network }}"
+          echo "Amount: ${{ inputs.score_amount }} tokens"
+          echo "Recipient: ${{ inputs.recipient_wallet }}"
+          echo "Repository: ${{ inputs.repo_name }}"
+          echo "Issue: #${{ inputs.issue_number }}"
+          echo ""
           echo "--- Transaction Details ---"
           TX_HASH=$(grep '^TX_HASH=' "$GITHUB_OUTPUT" | cut -d'=' -f2)
           EXPLORER_URL=$(grep '^EXPLORER_URL=' "$GITHUB_OUTPUT" | cut -d'=' -f2)
-          echo "Hash: $TX_HASH"
+          echo "Transaction Hash: $TX_HASH"
           if [ -n "$EXPLORER_URL" ]; then
             echo "Explorer: $EXPLORER_URL"
           fi
-          echo "Settlement successful! Tokens have been minted to the recipient address."
 
-      # - name: Post error notification (Demo)
-      #   if: failure()
-      #   uses: actions/github-script@v7
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     script: |
-      #       const errorMsg = process.env.ERROR_MESSAGE || 'Settlement failed';
-      #       await github.rest.issues.createComment({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         issue_number: ${{ inputs.issue_number }},
-      #         body: [
-      #           " **x402 Settlement Failed (Demo)**",
-      #           "",
-      #           `• Network: **${{ inputs.network }}**`,
-      #           `• Amount: **${{ inputs.score_amount }}**`,
-      #           `• Recipient: \`${{ inputs.recipient_wallet }}\``,
-      #           "",
-      #           `**Error:** ${errorMsg}`,
-      #           "",
-      #           "Please check workflow logs for details."
-      #         ].join("\n")
-      #       });
+      - name: Post error notification
+        if: failure()
+        run: |
+          echo "❌ x402 Settlement Failed"
+          echo ""
+          echo "Network: ${{ inputs.network }}"
+          echo "Amount: ${{ inputs.score_amount }}"
+          echo "Recipient: ${{ inputs.recipient_wallet }}"
+          echo ""
+          echo "Please check workflow logs for details."

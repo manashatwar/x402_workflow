@@ -116,6 +116,12 @@ async function main() {
       ""
     );
 
+    console.log("Configuration:");
+    console.log(`  Network: ${network}`);
+    console.log(`  Recipient: ${recipient}`);
+    console.log(`  Score Amount: ${scoreAmount}`);
+    console.log(`  Token Contract: ${tokenContract}`);
+    console.log(`  Issue: ${repoName}#${issueNumber}\n`);
 
     const client = createThirdwebClient({
       secretKey: process.env.THIRDWEB_SECRET_KEY,
@@ -127,6 +133,8 @@ async function main() {
       client,
       privateKey: process.env.SERVER_WALLET.trim(),
     });
+
+    console.log(`📝 Using server wallet: ${account.address}\n`);
 
     const contract = getContract({
       client,
@@ -151,20 +159,28 @@ async function main() {
     const txHash = result.transactionHash;
     const explorerUrl = getExplorerUrl(txHash, network);
 
-    console.log(`✅ Transaction confirmed!\n`);
+    // Disable masking for public blockchain data
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log('::stop-commands::ENDTOKEN');
+    }
+
+    console.log(`✅ Transaction confirmed!`);
+    console.log(`   Tx Hash: ${txHash}\n`);
 
     if (process.env.GITHUB_OUTPUT) {
       const output = `TX_HASH=${txHash}\nEXPLORER_URL=${explorerUrl}\n`;
       fs.appendFileSync(process.env.GITHUB_OUTPUT, output);
+      console.log("📋 Output variables set for GitHub Actions");
     }
 
-    console.log("🎉 Score settlement completed successfully!\n");
-    console.log("Transaction Hash:");
-    console.log(txHash);
-    console.log("");
-    console.log("Explorer Link:");
-    console.log(explorerUrl);
-    console.log("");
+    console.log("\n🎉 Score settlement completed successfully!");
+    console.log(`   ${scoreAmount} tokens minted to ${recipient}`);
+    console.log(`   Explorer: ${explorerUrl || "N/A"}\n`);
+
+    // Re-enable command processing
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log('::ENDTOKEN::');
+    }
 
     process.env.TX_HASH = txHash;
     process.env.EXPLORER_URL = explorerUrl;

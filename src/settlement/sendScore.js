@@ -9,7 +9,11 @@ import { dirname, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, "..", ".env.local") });
+
+// Only load .env.local for local testing (not in GitHub Actions)
+if (!process.env.GITHUB_ACTIONS) {
+  dotenv.config({ path: join(__dirname, "..", "..", ".env.local") });
+}
 
 import { createThirdwebClient } from "thirdweb";
 import { prepareContractCall, sendTransaction } from "thirdweb";

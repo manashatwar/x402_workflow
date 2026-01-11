@@ -139,10 +139,13 @@ async function main() {
 
     console.log("⚙️  Preparing mint transaction...");
 
+    // Convert score amount to token units (18 decimals)
+    const tokenAmount = BigInt(scoreAmount) * BigInt(10 ** 18);
+
     const transaction = prepareContractCall({
       contract,
       method: "function mint(address to, uint256 amount) external",
-      params: [recipient, BigInt(scoreAmount)],
+      params: [recipient, tokenAmount],
     });
 
     console.log("📤 Sending transaction to Monad...");

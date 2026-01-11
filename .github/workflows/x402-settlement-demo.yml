@@ -3,27 +3,6 @@ name: x402 Settlement Demo
 
 on:
   workflow_dispatch:
-    inputs:
-      recipient_wallet:
-        description: 'Recipient wallet address'
-        required: true
-        default: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
-      score_amount:
-        description: 'Score amount to mint'
-        required: true
-        default: '10'
-      network:
-        description: 'Network (monad-testnet or monad-mainnet)'
-        required: true
-        default: 'monad-testnet'
-      issue_number:
-        description: 'Issue number'
-        required: true
-        default: '1'
-      repo_name:
-        description: 'Repository name'
-        required: true
-        default: 'test/repo'
 
 jobs:
   x402_settlement_demo:
@@ -75,11 +54,11 @@ jobs:
           SERVER_WALLET: ${{ secrets.SERVER_WALLET }}
           SCORE_TOKEN_CONTRACT: ${{ secrets.SCORE_TOKEN_CONTRACT }}
           RPC_URL: ${{ secrets.RPC_URL }}
-          RECIPIENT_WALLET: ${{ inputs.recipient_wallet }}
-          SCORE_AMOUNT: ${{ inputs.score_amount }}
-          NETWORK: ${{ inputs.network }}
-          ISSUE_NUMBER: ${{ inputs.issue_number }}
-          REPO_NAME: ${{ inputs.repo_name }}
+          RECIPIENT_WALLET: ${{ secrets.RECIPIENT_WALLET }}
+          SCORE_AMOUNT: ${{ secrets.SCORE_AMOUNT }}
+          NETWORK: ${{ secrets.NETWORK }}
+          ISSUE_NUMBER: ${{ secrets.ISSUE_NUMBER }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
         run: |
           node src/settlement/sendScore.js
           if [ -f "$GITHUB_OUTPUT" ]; then
@@ -90,9 +69,9 @@ jobs:
         if: success()
         run: |
           echo "x402 Settlement Completed (Demo, Monad)"
-          echo "Amount: ${{ inputs.score_amount }} tokens"
-          echo "Recipient: ${{ inputs.recipient_wallet }}"
-          echo "Network: ${{ inputs.network }}"
+          echo "Amount: ${{ secrets.SCORE_AMOUNT }} tokens"
+          echo "Recipient: ${{ secrets.RECIPIENT_WALLET }}"
+          echo "Network: ${{ secrets.NETWORK }}"
           echo "--- Transaction Details ---"
           TX_HASH=$(grep '^TX_HASH=' "$GITHUB_OUTPUT" | cut -d'=' -f2)
           EXPLORER_URL=$(grep '^EXPLORER_URL=' "$GITHUB_OUTPUT" | cut -d'=' -f2)

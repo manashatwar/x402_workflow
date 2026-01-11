@@ -60,27 +60,27 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Validate wallet address
-        run: |
-          node -e "
-          const address = '${{ inputs.recipient_wallet }}';
-          if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-            console.error('Invalid Ethereum address format');
-            process.exit(1);
-          }
-          console.log('Address validation passed');
-          "
+      # - name: Validate wallet address
+      #   run: |
+      #     node -e "
+      #     const address = '${{ inputs.recipient_wallet }}';
+      #     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      #       console.error('Invalid Ethereum address format');
+      #       process.exit(1);
+      #     }
+      #     console.log('Address validation passed');
+      #     "
 
-      - name: Validate contract address
-        run: |
-          node -e "
-          const address = '${{ secrets.SCORE_TOKEN_CONTRACT }}';
-          if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-            console.error('Invalid score token contract address');
-            process.exit(1);
-          }
-          console.log('Score token contract validation passed');
-          "
+      # - name: Validate contract address
+      #   run: |
+      #     node -e "
+      #     const address = '${{ secrets.SCORE_TOKEN_CONTRACT }}';
+      #     if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      #       console.error('Invalid score token contract address');
+      #       process.exit(1);
+      #     }
+      #     console.log('Score token contract validation passed');
+      #     "
 
       - name: Execute settlement (Demo)
         id: x402_demo

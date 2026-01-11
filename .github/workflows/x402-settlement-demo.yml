@@ -3,19 +3,27 @@ name: x402 Settlement Demo
 
 on:
   workflow_dispatch:
-    secrets:
-      THIRDWEB_SECRET_KEY:
-        description: "Thirdweb API secret key"
+    inputs:
+      recipient_wallet:
+        description: 'Recipient wallet address'
         required: true
-      SERVER_WALLET:
-        description: "Server wallet private key"
+        default: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+      score_amount:
+        description: 'Score amount to mint'
         required: true
-      SCORE_TOKEN_CONTRACT:
-        description: "ScoreToken contract address"
+        default: '10'
+      network:
+        description: 'Network (monad-testnet or monad-mainnet)'
         required: true
-      RPC_URL:
-        description: "Monad RPC endpoint"
+        default: 'monad-testnet'
+      issue_number:
+        description: 'Issue number'
         required: true
+        default: '1'
+      repo_name:
+        description: 'Repository name'
+        required: true
+        default: 'test/repo'
 
 jobs:
   x402_settlement_demo:

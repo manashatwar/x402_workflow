@@ -3,28 +3,6 @@ name: x402 Settlement Demo
 
 on:
   workflow_dispatch:
-    inputs:
-      repo_name:
-        description: "Repository name"
-        required: true
-        type: string
-      issue_number:
-        description: "Issue number"
-        required: true
-        type: number
-      recipient_wallet:
-        description: "Recipient address"
-        required: true
-        type: string
-      score_amount:
-        description: "Token amount to mint"
-        required: true
-        type: number
-      network:
-        description: "Network (monad-testnet | monad-mainnet)"
-        required: true
-        type: string
-
     secrets:
       THIRDWEB_SECRET_KEY:
         description: "Thirdweb API secret key"

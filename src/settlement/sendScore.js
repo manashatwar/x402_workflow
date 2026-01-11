@@ -55,18 +55,20 @@ function validateEnv() {
     );
   }
 
-  const contractAddress = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
+  const contractAddress = process.env.SCORE_TOKEN_CONTRACT.trim().replace(
+    /['"]/g,
+    ""
+  );
   if (!ethers.isAddress(contractAddress)) {
-    throw new Error(
-      `Invalid SCORE_TOKEN_CONTRACT address`
-    );
+    throw new Error(`Invalid SCORE_TOKEN_CONTRACT address`);
   }
 
-  const recipientAddress = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+  const recipientAddress = process.env.RECIPIENT_WALLET.trim().replace(
+    /['"]/g,
+    ""
+  );
   if (!ethers.isAddress(recipientAddress)) {
-    throw new Error(
-      `Invalid RECIPIENT_WALLET address`
-    );
+    throw new Error(`Invalid RECIPIENT_WALLET address`);
   }
 
   const amount = parseInt(process.env.SCORE_AMOUNT, 10);
@@ -104,12 +106,15 @@ async function main() {
 
     validateEnv();
 
-    const recipient = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+    const recipient = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, "");
     const scoreAmount = process.env.SCORE_AMOUNT.trim();
     const network = process.env.NETWORK.trim();
     const issueNumber = process.env.ISSUE_NUMBER.trim();
     const repoName = process.env.REPO_NAME.trim();
-    const tokenContract = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
+    const tokenContract = process.env.SCORE_TOKEN_CONTRACT.trim().replace(
+      /['"]/g,
+      ""
+    );
 
     console.log("Configuration:");
     console.log(`  Network: ${network}`);
@@ -152,10 +157,15 @@ async function main() {
     });
 
     const txHash = result.transactionHash;
+    const explorerUrl = getExplorerUrl(txHash, network);
+
+    // Disable masking for public blockchain data
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log('::stop-commands::ENDTOKEN');
+    }
+
     console.log(`✅ Transaction confirmed!`);
     console.log(`   Tx Hash: ${txHash}\n`);
-
-    const explorerUrl = getExplorerUrl(txHash, network);
 
     if (process.env.GITHUB_OUTPUT) {
       const output = `TX_HASH=${txHash}\nEXPLORER_URL=${explorerUrl}\n`;
@@ -163,12 +173,17 @@ async function main() {
       console.log("📋 Output variables set for GitHub Actions");
     }
 
-    process.env.TX_HASH = txHash;
-    process.env.EXPLORER_URL = explorerUrl;
-
     console.log("\n🎉 Score settlement completed successfully!");
     console.log(`   ${scoreAmount} tokens minted to ${recipient}`);
     console.log(`   Explorer: ${explorerUrl || "N/A"}\n`);
+
+    // Re-enable command processing
+    if (process.env.GITHUB_ACTIONS === 'true') {
+      console.log('::ENDTOKEN::');
+    }
+
+    process.env.TX_HASH = txHash;
+    process.env.EXPLORER_URL = explorerUrl;
 
     process.exit(0);
   } catch (error) {

@@ -70,7 +70,6 @@ function validateEnv() {
 }
 
 function getChainConfig() {
-function getChainConfig() {
   const network = process.env.NETWORK;
 
   if (network === "monad-testnet") {

@@ -95,7 +95,7 @@ jobs:
           ISSUE_NUMBER: ${{ inputs.issue_number }}
           REPO_NAME: ${{ inputs.repo_name }}
         run: |
-          node scripts/sendScore.js
+          node src/settlement/sendScore.js
           if [ -f "$GITHUB_OUTPUT" ]; then
             cat "$GITHUB_OUTPUT"
           fi

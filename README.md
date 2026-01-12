@@ -1,82 +1,73 @@
-# x402 Score Settlement System
+# x402 Score Settlement
 
-Blockchain settlement engine for multi-contributor GitHub recognition using the x402 payment protocol.
+Blockchain settlement engine for GitHub contributor recognition on Monad.
 
-## 🎯 Purpose
+## Overview
 
-This repository provides reusable workflows for:
+Mints non-transferable ERC-20 tokens to contributor wallets as immutable proof of contribution. Built for integration with GitHub Actions command-trigger workflows.
 
-- Settling score distributions on-chain after maintainer confirmation
-- Executing x402 payment protocol for contributor wallet crediting
-- Providing transparent, auditable blockchain transaction records
-- Integrating with GitHub Actions for automated settlement
+## Quick Start
 
-## 🚀 Architecture
+```bash
+npm install
+```
 
-This is the **execution layer** of the score distribution system:
+Configure `THIRDWEB_SECRET_KEY` in GitHub repository secrets, then run the demo workflow from the Actions tab.
 
-- Receives settlement requests from command-trigger workflows
-- Validates addresses and budget constraints
-- Executes blockchain transactions via x402 facilitators
-- Posts transaction hashes back to GitHub issues
+## Project Structure
 
-## 🔐 Required Secrets
+```
+.github/workflows/
+├── x402-settlement.yml       # Reusable workflow (production)
+└── x402-settlement-demo.yml  # Manual trigger (testing)
 
-**Required secrets:**
+src/
+├── settlement/
+│   └── sendScore.js          # Settlement engine
+├── contracts/
+│   ├── ScoreToken.abi.json   # Contract ABI
+│   └── scoreToken.js         # ABI export
+└── validation/
+    └── addressValidator.js   # Validation utilities
 
-- `THIRDWEB_SECRET_KEY` - Thirdweb secret key for x402 facilitator
-- `SERVER_WALLET` - Server wallet address for settlement (must have minter role)
-- `SCORE_TOKEN_CONTRACT` - Deployed non-transferable ERC-20 score token contract on Monad
-- `RPC_URL` - Monad RPC endpoint URL
-- `GITHUB_TOKEN` - Token for posting comments (auto-provided or custom)
+config/
+└── chainConfig.js            # Network configurations
 
-## 🎯 Token Architecture
+docs/
+├── ARCHITECTURE.md           # System design
+├── FILE_REFERENCE.md         # File documentation
+├── WORKFLOWS.md              # Workflow reference
+└── DEPLOYMENT.md             # Setup guide
+```
 
-This system uses **Non-transferable ERC-20 tokens** for score distribution:
+## Documentation
 
-- **Token Model**: 1 score point = 1 token (fungible)
-- **Non-transferable**: `transfer()` and `transferFrom()` functions revert
-- **Gas Efficient**: Single mint transaction for any score amount (50 points = 1 tx)
-- **Simple Aggregation**: Use `balanceOf()` to get total score
-- **Provenance Events**: `ScoreMinted` event emitted with issue/repo/maintainer metadata
-- **Revocable**: Minter can burn tokens for corrections
+| Document                                 | Description                       |
+| ---------------------------------------- | --------------------------------- |
+| [Architecture](docs/ARCHITECTURE.md)     | System design and data flow       |
+| [File Reference](docs/FILE_REFERENCE.md) | Detailed file documentation       |
+| [Workflows](docs/WORKFLOWS.md)           | GitHub Actions workflow guide     |
+| [Deployment](docs/DEPLOYMENT.md)         | Setup and deployment instructions |
 
-**Contract Requirements:**
+## Usage
 
-- Based on OpenZeppelin ERC-20
-- Override `transfer`/`transferFrom` to revert (only allow mint/burn)
-- Emit `ScoreMinted(address indexed to, uint256 amount, string repo, uint256 issue, address issuer)` on mint
-- `onlyMinter` role for `mint()` function
+### Demo (Manual Testing)
 
-## 📦 Setup
+1. Add `THIRDWEB_SECRET_KEY` to repository secrets
+2. Go to Actions → x402 Settlement Demo → Run workflow
+3. Enter parameters and execute
 
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-2. **Configure secrets in GitHub:**
-   - Go to repository Settings → Secrets and variables → Actions
-   - Add the required secrets listed above
-
-3. **Configure Monad network:**
-   - Update `config/chainConfig.js` with your preferred network
-   - Supported: `monad-testnet`, `monad-mainnet`
-
-## 🔄 Usage
-
-This workflow is designed to be called from another repository:
+### Production (Reusable Workflow)
 
 ```yaml
 jobs:
-  settle-score:
-    uses: your-org/contributor-automation/.github/workflows/x402-settlement.yml@main
+  settle:
+    uses: manashatwar/x402_workflow/.github/workflows/x402-settlement.yml@main
     with:
       repo_name: ${{ github.repository }}
-      issue_number: 52
+      issue_number: 42
       recipient_wallet: "0x..."
-      score_amount: 10
+      score_amount: 100
       network: "monad-testnet"
     secrets:
       THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }}
@@ -86,93 +77,20 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## 📚 Documentation
+## Networks
 
-- [Environment Variables Setup](docs/ENVIRONMENT.md) - Complete guide to configuration
-- [Thirdweb x402 Docs](https://portal.thirdweb.com/x402)
-- [Monad x402 Guide](https://docs.monad.xyz/guides/x402-guide)
-- [Monad Developer Docs](https://docs.monad.xyz/)
-- [x402 Protocol](https://x402.org/)
+| Network       | Chain ID | Explorer                        |
+| ------------- | -------- | ------------------------------- |
+| Monad Testnet | 10143    | https://testnet.monadvision.com |
+| Monad Mainnet | 41454    | https://monadvision.com         |
 
-## 🏗️ Project Structure
+## Dependencies
 
-```
-.github/workflows/
-  └── x402-settlement.yml    # Reusable workflow for settlement
-config/
-  └── chainConfig.js         # Monad network configurations
-scripts/
-  └── sendScore.js           # Core x402 settlement script (Thirdweb SDK)
-src/
-  ├── contracts/
-  │   └── scoreToken.js      # Token contract ABI & Solidity example
-  └── validation/
-      └── addressValidator.js # Address & amount validation
-docs/
-  └── ENVIRONMENT.md         # Environment variables guide
-tests/
-  └── sendScore.test.js      # Unit tests
-```
+| Package  | Purpose                         |
+| -------- | ------------------------------- |
+| thirdweb | Blockchain transaction handling |
+| ethers   | Address validation              |
 
-## 🧪 Testing
+## License
 
-Run tests:
-
-```bash
-npm test
-```
-
-Test settlement locally (requires .env.local):
-
-```bash
-npm run settle
-```
-
-## 🚀 Deployment Checklist
-
-Before production use:
-
-1. ✅ Deploy Score Token contract to Monad
-   - Use example in `src/contracts/scoreToken.js`
-   - Grant MINTER_ROLE to SERVER_WALLET
-   - Test minting on testnet
-
-2. ✅ Set up Thirdweb account
-   - Create project at https://thirdweb.com/dashboard
-   - Get Secret Key
-   - Create Server Wallet
-
-3. ✅ Configure GitHub Secrets
-   - See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)
-   - Test with dummy values first
-
-4. ✅ Test on Monad testnet
-   - Get testnet MON for gas
-   - Run test settlements
-   - Verify transactions on explorer
-
-5. ✅ Deploy to mainnet
-   - Use separate contract & wallet
-   - Start with small score amounts
-   - Monitor gas costs
-
-## ⚠️ Status
-
-**Current Status:** ✅ **Production-ready implementation**
-
-**Implemented:**
-
-- ✅ Complete x402 settlement script with Thirdweb SDK
-- ✅ Monad testnet/mainnet support
-- ✅ Non-transferable ERC-20 token minting
-- ✅ GitHub Actions workflow integration
-- ✅ Error handling & validation
-- ✅ Transaction hash & explorer URL output
-- ✅ Comprehensive documentation
-
-**Next Steps:**
-
-1. Deploy Score Token contract to Monad
-2. Configure GitHub secrets
-3. Test on Monad testnet
-4. Integrate with command-trigger workflow (Karun's repo)
+MIT

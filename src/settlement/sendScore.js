@@ -3,18 +3,6 @@
  * Mints non-transferable ERC-20 tokens on Monad for score distribution
  */
 
-import dotenv from "dotenv";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Only load .env.local for local testing (not in GitHub Actions)
-if (!process.env.GITHUB_ACTIONS) {
-  dotenv.config({ path: join(__dirname, "..", "..", ".env.local") });
-}
-
 import { createThirdwebClient } from "thirdweb";
 import { prepareContractCall, sendTransaction } from "thirdweb";
 import { privateKeyToAccount } from "thirdweb/wallets";
@@ -55,18 +43,20 @@ function validateEnv() {
     );
   }
 
-  const contractAddress = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
+  const contractAddress = process.env.SCORE_TOKEN_CONTRACT.trim().replace(
+    /['"]/g,
+    ""
+  );
   if (!ethers.isAddress(contractAddress)) {
-    throw new Error(
-      `Invalid SCORE_TOKEN_CONTRACT address`
-    );
+    throw new Error(`Invalid SCORE_TOKEN_CONTRACT address`);
   }
 
-  const recipientAddress = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+  const recipientAddress = process.env.RECIPIENT_WALLET.trim().replace(
+    /['"]/g,
+    ""
+  );
   if (!ethers.isAddress(recipientAddress)) {
-    throw new Error(
-      `Invalid RECIPIENT_WALLET address`
-    );
+    throw new Error(`Invalid RECIPIENT_WALLET address`);
   }
 
   const amount = parseInt(process.env.SCORE_AMOUNT, 10);
@@ -104,12 +94,15 @@ async function main() {
 
     validateEnv();
 
-    const recipient = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, '');
+    const recipient = process.env.RECIPIENT_WALLET.trim().replace(/['"]/g, "");
     const scoreAmount = process.env.SCORE_AMOUNT.trim();
     const network = process.env.NETWORK.trim();
     const issueNumber = process.env.ISSUE_NUMBER.trim();
     const repoName = process.env.REPO_NAME.trim();
-    const tokenContract = process.env.SCORE_TOKEN_CONTRACT.trim().replace(/['"]/g, '');
+    const tokenContract = process.env.SCORE_TOKEN_CONTRACT.trim().replace(
+      /['"]/g,
+      ""
+    );
 
     console.log("Configuration:");
     console.log(`  Network: ${network}`);

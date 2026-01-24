@@ -134,7 +134,7 @@ jobs:
           CALLER_REPO: ${{ inputs.repo_name }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
         with:
-          github-token: ${{ inputs.github_token || secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github_token || secrets.CALLBACK_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.CALLER_REPO.split('/');
             const issueNumber = parseInt(process.env.ISSUE_NUMBER);
@@ -199,7 +199,7 @@ jobs:
           CALLER_REPO: ${{ inputs.repo_name }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
         with:
-          github-token: ${{ inputs.github_token || secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github_token || secrets.CALLBACK_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.CALLER_REPO.split('/');
             const issueNumber = parseInt(process.env.ISSUE_NUMBER);

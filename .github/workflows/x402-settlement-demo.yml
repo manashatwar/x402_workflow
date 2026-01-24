@@ -46,6 +46,10 @@ on:
         required: true
         type: string
         default: "https://testnet.monad.xyz"
+      github_token:
+        description: "GitHub token for posting comments to caller repo"
+        required: false
+        type: string
 
 jobs:
   x402_settlement_demo:
@@ -130,7 +134,7 @@ jobs:
           CALLER_REPO: ${{ inputs.repo_name }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github_token || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.CALLER_REPO.split('/');
             const issueNumber = parseInt(process.env.ISSUE_NUMBER);
@@ -195,7 +199,7 @@ jobs:
           CALLER_REPO: ${{ inputs.repo_name }}
           ISSUE_NUMBER: ${{ inputs.issue_number }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ inputs.github_token || secrets.GITHUB_TOKEN }}
           script: |
             const [owner, repo] = process.env.CALLER_REPO.split('/');
             const issueNumber = parseInt(process.env.ISSUE_NUMBER);

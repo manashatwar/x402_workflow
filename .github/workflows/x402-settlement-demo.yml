@@ -123,6 +123,60 @@ jobs:
             echo "Explorer: $EXPLORER_URL"
           fi
 
+      - name: Post success to caller repository
+        if: success() && inputs.repo_name != 'manashatwar/x402_workflow'
+        uses: actions/github-script@v7
+        env:
+          CALLER_REPO: ${{ inputs.repo_name }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const [owner, repo] = process.env.CALLER_REPO.split('/');
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER);
+            
+            let txHash = 'pending';
+            let explorerUrl = '';
+            
+            try {
+              const fs = require('fs');
+              const outputPath = process.env.GITHUB_OUTPUT || '';
+              if (outputPath && fs.existsSync(outputPath)) {
+                const outputs = fs.readFileSync(outputPath, 'utf8');
+                const txMatch = outputs.match(/TX_HASH=([^\n]+)/);
+                const urlMatch = outputs.match(/EXPLORER_URL=([^\n]+)/);
+                if (txMatch) txHash = txMatch[1];
+                if (urlMatch) explorerUrl = urlMatch[1];
+              }
+            } catch (e) {
+              console.log('Could not read outputs:', e.message);
+            }
+            
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: [
+                "## 🎉 x402 Settlement Completed Successfully!",
+                "",
+                `### 💰 Token Details`,
+                `- **Amount:** ${context.payload.inputs.score_amount} SCORE tokens`,
+                `- **Recipient:** \`${context.payload.inputs.recipient_wallet}\``,
+                `- **Network:** ${context.payload.inputs.network}`,
+                "",
+                `### 🔗 Transaction Details`,
+                `- **Hash:** \`${txHash}\``,
+                explorerUrl ? `- **Explorer:** [View on MonadVision](${explorerUrl})` : "",
+                "",
+                "### ✅ What This Means",
+                "- Non-transferable reputation tokens have been minted to your wallet",
+                "- These tokens represent your contribution to the project",
+                "- You can view them in your wallet on Monad network",
+                "",
+                "> Thank you for your contribution! 🚀"
+              ].filter(Boolean).join("\n")
+            });
+
       - name: Post error notification
         if: failure()
         run: |
@@ -133,3 +187,39 @@ jobs:
           echo "Recipient: ${{ inputs.recipient_wallet }}"
           echo ""
           echo "Please check workflow logs for details."
+
+      - name: Post error to caller repository
+        if: failure() && inputs.repo_name != 'manashatwar/x402_workflow'
+        uses: actions/github-script@v7
+        env:
+          CALLER_REPO: ${{ inputs.repo_name }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const [owner, repo] = process.env.CALLER_REPO.split('/');
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER);
+            
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              body: [
+                "## ❌ x402 Settlement Failed",
+                "",
+                `### ⚠️ Settlement Details`,
+                `- **Network:** ${context.payload.inputs.network}`,
+                `- **Amount:** ${context.payload.inputs.score_amount} tokens`,
+                `- **Recipient:** \`${context.payload.inputs.recipient_wallet}\``,
+                "",
+                "### 🔍 What Happened",
+                "The token minting process encountered an error. This could be due to:",
+                "- Network connectivity issues",
+                "- Insufficient gas or balance in server wallet",
+                "- Contract interaction failure",
+                "",
+                "Please contact the repository maintainer for assistance.",
+                "",
+                `[View workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+              ].join("\n")
+            });

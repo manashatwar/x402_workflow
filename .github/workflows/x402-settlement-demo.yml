@@ -60,8 +60,11 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: Checkout x402 repository
         uses: actions/checkout@v4
+        with:
+          repository: manashatwar/x402_workflow
+          path: .
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

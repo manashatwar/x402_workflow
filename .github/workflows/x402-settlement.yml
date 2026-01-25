@@ -51,9 +51,12 @@ jobs:
       contents: read
 
     steps:
-      # Checkout repository containing x402 scripts
-      - name: Checkout repository
+      # Checkout x402 repository containing scripts
+      - name: Checkout x402 repository
         uses: actions/checkout@v4
+        with:
+          repository: manashatwar/x402_workflow
+          path: .
 
       # Setup Node.js (required by thirdweb + x402)
       - name: Setup Node.js

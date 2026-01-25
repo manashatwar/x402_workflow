@@ -10,7 +10,24 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "src/contracts/**",
+      "src/settlement/**",
+      "src/validation/**",
+      "config/**",
+      "caller-repo-template/**",
+      "tests/**",
+      ".github/**",
+      "*.md",
+      "!README.md",
+      "package.json",
+      "package-lock.json"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }

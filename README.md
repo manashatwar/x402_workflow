@@ -33,12 +33,24 @@ src/
 config/
 └── chainConfig.js            # Network configurations
 
+web-app/
+├── index.html                # Web interface for triggering settlements
+└── README.md                 # Deployment guide for GitHub Pages
+
+caller-repo-template/
+└── .github/workflows/
+    └── pr-x402-trigger.yml   # Template for repos using x402
+
 docs/
 ├── ARCHITECTURE.md           # System design
 ├── FILE_REFERENCE.md         # File documentation
 ├── WORKFLOWS.md              # Workflow reference
 └── DEPLOYMENT.md             # Setup guide
 ```
+
+## 🌐 Web Interface
+
+Deploy a web UI to trigger settlements: [web-app/README.md](web-app/README.md)
 
 ## Documentation
 

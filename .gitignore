@@ -7,6 +7,10 @@ yarn-error.log
 .env.local
 *.log
 
+# Firebase
+.firebase/
+.firebaserc
+
 # OS
 .DS_Store
 Thumbs.db

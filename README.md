@@ -103,6 +103,8 @@ jobs:
 | thirdweb | Blockchain transaction handling |
 | ethers   | Address validation              |
 
+this is reusable repo and calling repo is  https://github.com/kpj2006/caller-repo-template
+
 ## License
 
 MIT

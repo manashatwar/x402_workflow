@@ -1,151 +1,74 @@
-# Deployment Guide
+# Deployment (Reusable Repo)
+
+This guide is only for operating this reusable settlement repository.
+
+For caller-repo setup (PR triggers, /send command, contributor flow), use:
+[caller-repo-template/docs/QUICKSTART.md](https://github.com/kpj2006/caller-repo-template/blob/main/docs/QUICKSTART.md)
 
 ## Prerequisites
 
-- Node.js 20 or higher
-- npm 9 or higher
-- Deployed ScoreToken contract on Monad
-- Thirdweb account with API key
-- Wallet with MON for gas fees
+- Node.js 20+
+- npm 9+
+- Deployed SCORE token contract on Monad
+- Server wallet with MON for gas
+- Thirdweb backend secret key
 
----
+## Required Contract Capability
 
-## Contract Requirements
+Contract must expose mint capability and the server wallet must be authorized to mint.
 
-The ScoreToken contract must implement:
+## Required Secret (Reusable Repo)
 
-```solidity
-interface IScoreToken {
-    function mint(address to, uint256 amount) external;
-    function burn(address from, uint256 amount) external;
-    function balanceOf(address account) external view returns (uint256);
-    function hasRole(bytes32 role, address account) external view returns (bool);
-    function grantRole(bytes32 role, address account) external;
-}
-```
+- THIRDWEB_SECRET_KEY: Thirdweb backend authentication
 
-**Critical**: The wallet used as `SERVER_WALLET` must have the minter role granted:
+Other values are provided through workflow inputs or caller repo secrets.
 
-```solidity
-bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-scoreToken.grantRole(MINTER_ROLE, serverWalletAddress);
-```
-
----
-
-## Step 1: Repository Setup
-
-Fork or clone this repository:
+## Local Install
 
 ```bash
-git clone https://github.com/manashatwar/x402_workflow.git
-cd x402_workflow
 npm install
 ```
 
----
+## Manual Validation via Demo Workflow
 
-## Step 2: Thirdweb Configuration
+1. Open GitHub Actions.
+2. Run x402 Settlement Demo.
+3. Provide recipient, amount, network, wallet key, contract, and RPC URL.
+4. Confirm transaction hash appears in workflow output.
 
-1. Create account at https://thirdweb.com
-2. Navigate to **Dashboard** → **Settings** → **API Keys**
-3. Create new API key with **Backend** scope
-4. Copy the **Secret Key** (starts with `RZF...` or similar)
+Use testnet first before any mainnet run.
 
----
+## Production Integration Contract
 
-## Step 3: GitHub Secrets
+Caller repositories must call reusable workflow:
 
-Navigate to your repository:
-**Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+- [.github/workflows/x402-settlement.yml](../.github/workflows/x402-settlement.yml)
 
-Add the following secret:
+Input/output details are documented in [WORKFLOWS.md](WORKFLOWS.md).
 
-| Name                  | Value    | Description             |
-| --------------------- | -------- | ----------------------- |
-| `THIRDWEB_SECRET_KEY` | `RZF...` | From Thirdweb dashboard |
+## Mainnet Cutover Checklist
 
----
-
-## Step 4: Test with Demo Workflow
-
-1. Go to **Actions** tab
-2. Select **x402 Settlement Demo**
-3. Click **Run workflow**
-4. Enter test parameters:
-   - Recipient: Your test wallet address
-   - Amount: `1` (small test amount)
-   - Network: `monad-testnet`
-   - Server wallet: Your private key with minter role
-   - Contract: Your deployed ScoreToken address
-   - RPC URL: `https://testnet.monad.xyz`
-5. Click **Run workflow**
-6. Monitor execution in Actions tab
-7. Verify transaction on MonadVision explorer
-
----
-
-## Step 5: Production Integration
-
-Configure the calling repository with required secrets:
-
-```yaml
-# In calling repository's workflow
-jobs:
-  settle-score:
-    uses: manashatwar/x402_workflow/.github/workflows/x402-settlement.yml@main
-    with:
-      repo_name: ${{ github.repository }}
-      issue_number: ${{ github.event.issue.number }}
-      recipient_wallet: ${{ steps.parse.outputs.wallet }}
-      score_amount: ${{ steps.parse.outputs.amount }}
-      network: "monad-testnet"
-    secrets:
-      THIRDWEB_SECRET_KEY: ${{ secrets.THIRDWEB_SECRET_KEY }}
-      SERVER_WALLET: ${{ secrets.SERVER_WALLET }}
-      SCORE_TOKEN_CONTRACT: ${{ secrets.SCORE_TOKEN_CONTRACT }}
-      RPC_URL: ${{ secrets.RPC_URL }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
----
-
-## Mainnet Deployment
-
-When ready for production:
-
-1. Deploy ScoreToken to Monad mainnet
-2. Grant minter role to production wallet
-3. Update secrets:
-   - `SCORE_TOKEN_CONTRACT` → mainnet address
-   - `RPC_URL` → `https://rpc.monad.xyz`
-   - `SERVER_WALLET` → production wallet key
-4. Change workflow input: `network: "monad-mainnet"`
-
----
+1. Confirm contract and server wallet on mainnet.
+2. Ensure minter permission is granted to server wallet.
+3. Update caller-provided contract and RPC values.
+4. Set workflow input network to monad-mainnet.
+5. Run one low-amount verification settlement.
 
 ## Troubleshooting
 
-### Error: Missing required environment variables
+Missing environment values:
 
-Ensure all secrets are configured in GitHub repository settings.
+- Verify caller workflow passes all required inputs and secrets.
 
-### Error: Invalid address format
+Authorization or revert errors:
 
-Addresses must be checksummed 42-character hex strings starting with `0x`.
+- Verify server wallet has mint authority.
+- Verify correct contract for selected network.
 
-### Error: Execution reverted
+Thirdweb errors:
 
-- Verify `SERVER_WALLET` has minter role on the contract
-- Check wallet has sufficient MON for gas
-- Confirm contract address is correct for the network
+- Verify backend secret key format and scope.
 
-### Error: Thirdweb authentication failed
+Explorer mismatch:
 
-- Verify `THIRDWEB_SECRET_KEY` is the **Secret Key**, not Client ID
-- Ensure API key has Backend scope enabled
-
-### Transaction not visible on explorer
-
-- Wait 1-2 blocks for indexer to process
-- Verify correct explorer URL (testnet vs mainnet)
+- Verify network key and RPC endpoint alignment.

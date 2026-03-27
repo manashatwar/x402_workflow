@@ -1,10 +1,28 @@
-# x402 Score Settlement
+# x402 Workflow (Reusable Settlement Engine)
 
-Blockchain settlement engine for GitHub contributor recognition on Monad.
+Reusable GitHub Actions + Node.js settlement engine that mints SCORE tokens on Monad.
 
-## Overview
+This repository is the settlement side of a two-repo system:
 
-Mints non-transferable ERC-20 tokens to contributor wallets as immutable proof of contribution. Built for integration with GitHub Actions command-trigger workflows.
+1. Caller repository: collects PR wallet and maintainer command.
+2. This repository: validates inputs, executes mint transaction, reports result.
+
+## Repository Responsibility
+
+This repo owns:
+
+- Settlement transaction logic
+- Reusable and demo workflows
+- Chain and contract integration details
+- Core validation utilities
+
+This repo does not own:
+
+- PR comment UX in consumer repositories
+- Maintainer reward policy (/send amount scale)
+- Caller-side onboarding docs
+
+Caller template docs live in [caller-repo-template/README.md](https://github.com/kpj2006/caller-repo-template/blob/main/README.md).
 
 ## Quick Start
 
@@ -12,64 +30,9 @@ Mints non-transferable ERC-20 tokens to contributor wallets as immutable proof o
 npm install
 ```
 
-Configure `THIRDWEB_SECRET_KEY` in GitHub repository secrets, then run the demo workflow from the Actions tab.
+Then configure secrets and run manual test workflow as described in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
-## Project Structure
-
-```
-.github/workflows/
-├── x402-settlement.yml       # Reusable workflow (production)
-└── x402-settlement-demo.yml  # Manual trigger (testing)
-
-src/
-├── settlement/
-│   └── sendScore.js          # Settlement engine
-├── contracts/
-│   ├── ScoreToken.abi.json   # Contract ABI
-│   └── scoreToken.js         # ABI export
-└── validation/
-    └── addressValidator.js   # Validation utilities
-
-config/
-└── chainConfig.js            # Network configurations
-
-web-app/
-├── index.html                # Web interface for triggering settlements
-└── README.md                 # Deployment guide for GitHub Pages
-
-caller-repo-template/
-└── .github/workflows/
-    └── pr-x402-trigger.yml   # Template for repos using x402
-
-docs/
-├── ARCHITECTURE.md           # System design
-├── FILE_REFERENCE.md         # File documentation
-├── WORKFLOWS.md              # Workflow reference
-└── DEPLOYMENT.md             # Setup guide
-```
-
-## 🌐 Web Interface
-
-Deploy a web UI to trigger settlements: [web-app/README.md](web-app/README.md)
-
-## Documentation
-
-| Document                                 | Description                       |
-| ---------------------------------------- | --------------------------------- |
-| [Architecture](docs/ARCHITECTURE.md)     | System design and data flow       |
-| [File Reference](docs/FILE_REFERENCE.md) | Detailed file documentation       |
-| [Workflows](docs/WORKFLOWS.md)           | GitHub Actions workflow guide     |
-| [Deployment](docs/DEPLOYMENT.md)         | Setup and deployment instructions |
-
-## Usage
-
-### Demo (Manual Testing)
-
-1. Add `THIRDWEB_SECRET_KEY` to repository secrets
-2. Go to Actions → x402 Settlement Demo → Run workflow
-3. Enter parameters and execute
-
-### Production (Reusable Workflow)
+## Reusable Workflow Usage
 
 ```yaml
 jobs:
@@ -89,21 +52,25 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## Networks
+## Documentation Map
 
-| Network       | Chain ID | Explorer                        |
-| ------------- | -------- | ------------------------------- |
-| Monad Testnet | 10143    | https://testnet.monadvision.com |
-| Monad Mainnet | 41454    | https://monadvision.com         |
+- [docs/README.md](docs/README.md): documentation index and ownership boundaries
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system flow and repo handoff points
+- [docs/WORKFLOWS.md](docs/WORKFLOWS.md): workflow contract and inputs/outputs
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): setup and operations for this reusable repo
+- [docs/FILE_REFERENCE.md](docs/FILE_REFERENCE.md): source file responsibilities
 
-## Dependencies
+## Related Repository
 
-| Package  | Purpose                         |
-| -------- | ------------------------------- |
-| thirdweb | Blockchain transaction handling |
-| ethers   | Address validation              |
+- Caller template (consumer repo side):
+  [kpj2006/caller-repo-template](https://github.com/kpj2006/caller-repo-template)
 
-this is reusable repo and calling repo is  https://github.com/kpj2006/caller-repo-template
+## Cross-Repo GitHub Links
+
+- Caller template repo: [https://github.com/kpj2006/caller-repo-template.git](https://github.com/kpj2006/caller-repo-template.git)
+- Reusable engine repo: [https://github.com/manashatwar/x402_workflow.git](https://github.com/manashatwar/x402_workflow.git)
+
+Use caller-side guides for PR interaction and maintainer command flow.
 
 ## License
 

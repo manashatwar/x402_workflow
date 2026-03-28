@@ -38,19 +38,19 @@ Out of scope:
 flowchart LR
   subgraph CallerRepo[Caller Repo]
     PR[PR comment events]
-    Trigger[/send parser + workflow trigger]
+    Trigger["/send parser + workflow trigger"]
   end
 
-  subgraph ReusableRepo[x402_workflow Reusable Repo]
-    WF[x402-settlement.yml]
-    Script[sendScore.js]
-    SDK[Thirdweb SDK]
+  subgraph ReusableRepo["x402_workflow Reusable Repo"]
+    WF["x402-settlement.yml"]
+    Script["sendScore.js"]
+    SDK["Thirdweb SDK"]
   end
 
-  Chain[(Monad RPC + Token Contract)]
+  Chain["(Monad RPC + Token Contract)"]
 
   PR --> Trigger --> WF --> Script --> SDK --> Chain
-  WF --> Callback[PR callback comment]
+  WF --> Callback["PR callback comment"]
 ```
 
 ### 3.2 Target (After Phase 2)
@@ -59,20 +59,20 @@ flowchart LR
 flowchart LR
   subgraph CallerRepo[Caller Repo]
     PR[PR comment events]
-    Trigger[/send parser + workflow trigger]
+    Trigger["/send parser + workflow trigger"]
   end
 
-  subgraph ReusableRepo[x402_workflow Reusable Repo]
-    WF[x402-settlement.yml]
-    Fac[x402 Facilitator]
-    Val[Validation Layer]
-    Build[Tx Builder]
-    Sign[Signer Service]
-    Send[RPC Sender + Receipt Watcher]
-    CB[Callback Publisher]
+  subgraph ReusableRepo["x402_workflow Reusable Repo"]
+    WF["x402-settlement.yml"]
+    Fac["x402 Facilitator"]
+    Val["Validation Layer"]
+    Build["Tx Builder"]
+    Sign["Signer Service"]
+    Send["RPC Sender + Receipt Watcher"]
+    CB["Callback Publisher"]
   end
 
-  Chain[(EVM RPC + Token Contract)]
+  Chain["(EVM RPC + Token Contract)"]
 
   PR --> Trigger --> WF --> Fac
   Fac --> Val --> Build --> Sign --> Send --> Chain
@@ -140,12 +140,12 @@ No Thirdweb mention for wallet creation.
 
 ```mermaid
 flowchart TD
-  A[Step 0: Baseline freeze + tests] --> B[Step 1: Add facilitator modules behind feature flag]
-  B --> C[Step 2: Implement ethers transaction path]
-  C --> D[Step 3: Keep callback contract identical]
-  D --> E[Step 4: Run manual testnet settlements behind feature flag]
-  E --> F[Step 5: Remove Thirdweb deps and docs]
-  F --> G[Step 6: Full cutover + rollback guard retained]
+  A["Step 0: Baseline freeze + tests"] --> B["Step 1: Add facilitator modules behind feature flag"]
+  B --> C["Step 2: Implement ethers transaction path"]
+  C --> D["Step 3: Keep callback contract identical"]
+  D --> E["Step 4: Run manual testnet settlements behind feature flag"]
+  E --> F["Step 5: Remove Thirdweb deps and docs"]
+  F --> G["Step 6: Full cutover + rollback guard retained"]
 ```
 
 Detailed steps:
@@ -189,7 +189,7 @@ sequenceDiagram
   participant RPC as EVM RPC
   participant GH as GitHub API
 
-  M->>CR: /send <amount>
+  M->>CR: /send amount
   CR->>CR: Permission + wallet resolution
   CR->>RR: workflow_call(inputs + secrets)
   RR->>F: executeSettlement(context)

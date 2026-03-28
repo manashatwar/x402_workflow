@@ -8,6 +8,42 @@ Current baseline:
 - Caller workflow handles wallet collection and maintainer trigger.
 - Reusable workflow executes on-chain settlement and callback comments.
 
+## Pre-Phase 1 PoC Evidence (What Already Works)
+
+These artifacts show the system behavior before formal Phase 1 hardening begins.
+
+Primary evidence links:
+
+- Demo video: https://www.youtube.com/watch?v=T2r8UPdkb18
+- Caller PR flow example: https://github.com/kpj2006/caller-repo-template/pull/8
+- Reusable workflow run example: https://github.com/manashatwar/x402_workflow/actions/runs/23678237350
+
+Local screenshots used for this PoC snapshot:
+
+- ![alt text](public/pr-1.png)
+- ![alt text](public/pr-2.png)
+- ![alt text](public/worklfow-log.png)
+- ![alt text](public/for_mvp_run_manully.png)
+
+What this PoC demonstrates before Phase 1:
+
+- Contributor claim capture works in PR comments:
+  - Bot asks for `x402-wallet: 0x...` format.
+  - User posts wallet comment and workflow acknowledges with "Wallet Address Saved".
+- Maintainer trigger model works:
+  - Maintainer uses `/send 100` style command in PR discussion.
+- Callback contract behavior already exists:
+  - Failure callback format is posted to PR with network, amount, recipient, and error summary.
+  - This validates the feedback loop from reusable workflow back to caller PR.
+- On-chain execution path is confirmed in demo run logs:
+  - Address validation step passes.
+  - Settlement step logs tx preparation, send, and confirmation.
+  - Tx hash and explorer URL are emitted as workflow outputs.
+  - Summary step prints normalized settlement details.
+- Manual settlement run path works as well:
+  - `workflow_dispatch` form accepts recipient, amount, network, issue/repo context, wallet key, contract, RPC URL, and callback token.
+
+
 ## Phase 1: Stability and Hardening
 
 Goal:
@@ -64,6 +100,8 @@ Exit criteria:
 
 - Thirdweb dependency removed from `package.json` and source.
 - End-to-end settlement works on testnet with ethers.js only.
+
+**read in details in [phase2_architecture_shift.md](phase2_architecture_shift.md) for the technical approach and migration plan.**
 
 ## Phase 3: Treasury Contract Model (Pre-Funded Pool)
 

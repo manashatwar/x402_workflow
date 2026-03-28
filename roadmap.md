@@ -14,7 +14,7 @@ These artifacts show the system behavior before formal Phase 1 hardening begins.
 
 Primary evidence links:
 
-- Demo video: https://www.youtube.com/watch?v=T2r8UPdkb18
+- Demo video: https://www.youtube.com/watch?v=T2r8UPdkb18 (in demo run by workflow_dispatch, but flow is the same as PR-triggered)
 - Caller PR flow example: https://github.com/kpj2006/caller-repo-template/pull/8
 - Reusable workflow run example: https://github.com/manashatwar/x402_workflow/actions/runs/23678237350
 
@@ -290,14 +290,6 @@ Exit criteria:
 - Versioned migration guides for workflow/action interface changes.
 - Feature flags for controlled rollout and rollback.
 
-## Suggested Delivery Rhythm
-
-- Phase 1: 2 to 3 sprints
-- Phase 2 to 4: 1 to 2 sprints each
-- Phase 5 to 8: 2+ sprints each (parallel tracks possible)
-
-## Ownership Suggestion
-
-- Reusable repo team: settlement engine, action/CLI, policy engine core.
-- Caller template team: command UX, maintainer workflows, docs for adopters.
-- Shared: chain config standards, security, migration tooling.
+## some important links for reference:
+- for upto-date about x402: https://github.com/xpaysh/awesome-x402
+- some important links for this : [link](links.md)

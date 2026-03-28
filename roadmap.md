@@ -290,6 +290,9 @@ Exit criteria:
 - Versioned migration guides for workflow/action interface changes.
 - Feature flags for controlled rollout and rollback.
 
-## some important links for reference:
+## some important links (must read for better understanding of the context and security implications)
+- important article:[link](https://chainscorelabs.com/en/guides/developer-experience-dx-blockchain-tools-and-analytics/smart-contract-lifecycle/how-to-establish-a-secure-smart-contract-deployment-pipeline)
 - for upto-date about x402: https://github.com/xpaysh/awesome-x402
 - some important links for this : [link](links.md)
+- x402 deep dive: https://www.youtube.com/live/lSdHKTmLArY?si=30I_K015jj8Ho529
+- after all phase, security review for trust and safety: https://youtube.com/playlist?list=PL5d8mp75BVkTLJg1hfThfB7cHLVnfYjzZ&si=QFtvyRpRpOpuXdfE

@@ -109,6 +109,24 @@ Goal:
 
 - Move from mint-on-demand to treasury-based token distribution.
 
+### What Treasury Contract Adds (That Wallet Cannot)
+
+A smart contract can enforce rules. A wallet cannot.
+
+Treasury contract can do:
+- Limit per transaction
+- Daily cap
+- Pause system
+- Revoke CI access
+
+Wallet cannot:
+- No transaction limits
+- No daily cap
+- No pause capability
+- No permission control layer
+
+This control layer becomes critical when automating payouts at scale and across multiple contributors.
+
 Scope:
 
 - Introduce treasury contract funded in advance.

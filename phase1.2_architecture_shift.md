@@ -8,27 +8,31 @@ Related roadmap phase:
 
 ## 1. Why This Shift
 
-Phase 2 is not only a dependency swap. It is an ownership shift.
+Phase 2 is not only a dependency swap. It is a clarity shift toward client ownership.
 
 Target outcome:
 
-- We control transaction building, signing flow, policy checks, and execution lifecycle.
+- Engine controls transaction building, signing flow, and execution lifecycle using **client-provided credentials**.
+- Engine is fully independent of external SDKs; all execution is via ethers.js direct RPC calls.
 - No Thirdweb in runtime, docs, secrets, or setup guidance.
 - Existing caller experience and callback contract remain stable.
+- Clear separation: engine is stateless orchestration; client owns all infrastructure (contracts, wallet, RPC).
 
 ## 2. Scope and Guardrails
 
 In scope:
 
-- Replace Thirdweb execution path with ethers.js JSON-RPC transaction path.
-- Introduce internal x402 facilitator module for execution orchestration.
+- Replace Thirdweb execution path with ethers.js JSON-RPC direct execution using client-provided credentials.
+- Introduce internal x402 facilitator module for stateless execution orchestration.
 - Keep caller command model and callback comment behavior unchanged.
+- Ensure all infrastructure (RPC URL, private key, contract addresses) remain client-provided and client-owned.
 
 Out of scope:
 
 - Treasury model (Phase 3).
 - Chain-agnostic multi-chain routing (Phase 4).
 - CLI/action productization (Phase 5).
+- Contract deployment or governance (client responsibility).
 
 ## 3. Current vs Target Architecture
 
@@ -96,7 +100,7 @@ Suggested internal modules:
 
 - `facilitator/context.js`: env and input normalization.
 - `facilitator/validate.js`: address, amount, network guards.
-- `facilitator/tx-builder.js`: ABI encode mint call.
+- `facilitator/tx-builder.js`: ABI encode client-contract execution call (for example `disburse` or `transfer`).
 - `facilitator/executor.js`: send/wait/retry with ethers provider.
 - `facilitator/result.js`: `TX_HASH`, `EXPLORER_URL`, error classification.
 
@@ -112,19 +116,47 @@ The following must remain compatible during Phase 2:
 
 This allows caller repos to migrate without behavior changes.
 
+## 5.1 Runtime Security Modes
+
+Execution is selected from client-provided configuration:
+
+- If `TREASURY_CONTRACT` is provided: call treasury `disburse(recipient, amount)`.
+- Else: call token contract transfer function.
+
+Reference pattern:
+
+```js
+if (TREASURY_CONTRACT) {
+  executeDisburse(recipient, amount);
+} else {
+  executeTransfer(recipient, amount);
+}
+```
+
+This keeps existing client contracts usable while enabling an incremental security upgrade path.
+
+## 5.2 Governance Layer Separation
+
+- GitHub controls who can trigger execution (maintainer rights, PR checks, branch protection).
+- Smart contracts control what execution is allowed (limits, pause, authorization).
+
+The execution engine coordinates these layers but does not embed GitHub policy into contract logic.
+
 ## 6. Secrets and Setup Changes
 
-### 6.1 Remove
+### 6.1 Clarification: Client-Provided Credentials
+
+These are **client-managed and owned**:
+
+- `SERVER_WALLET`: private key of the operator account (fully client-controlled)
+- `SCORE_TOKEN_CONTRACT`: address deployed and owned by client
+- `RPC_URL`: client's chosen EVM chain endpoint
+- `CALLBACK_GITHUB_TOKEN`: GitHub token for posting results (client-provided)
+
+### 6.2 Remove (Thirdweb Dependency)
 
 - Thirdweb secret references from workflows and docs.
 - Thirdweb package dependencies from `package.json`.
-
-### 6.2 Keep
-
-- `SERVER_WALLET`
-- `SCORE_TOKEN_CONTRACT`
-- `RPC_URL`
-- callback GitHub token secret
 
 ### 6.3 Wallet Generation Guidance
 
@@ -134,7 +166,7 @@ Only these methods should appear in docs:
 - ethers.js one-liner
 - browser wallet
 
-No Thirdweb mention for wallet creation.
+**No Thirdweb mention for wallet creation or management.**
 
 ## 7. Migration Plan (How the Shift Occurs)
 

@@ -15,7 +15,7 @@ For caller-repo setup (PR triggers, /send command, contributor flow), use:
 
 ## Required Contract Capability
 
-Contract must expose mint capability and the server wallet must be authorized to mint.
+Contract must expose transfer/disbursement capability and the server wallet must be authorized to execute the configured method.
 
 ## Required Secret (Reusable Repo)
 
@@ -49,7 +49,7 @@ Input/output details are documented in [WORKFLOWS.md](WORKFLOWS.md).
 ## Mainnet Cutover Checklist
 
 1. Confirm contract and server wallet on mainnet.
-2. Ensure minter permission is granted to server wallet.
+2. Ensure required execution permission is granted to server wallet.
 3. Update caller-provided contract and RPC values.
 4. Set workflow input network to monad-mainnet.
 5. Run one low-amount verification settlement.
@@ -62,7 +62,7 @@ Missing environment values:
 
 Authorization or revert errors:
 
-- Verify server wallet has mint authority.
+- Verify server wallet has required execution permission.
 - Verify correct contract for selected network.
 
 Thirdweb errors:

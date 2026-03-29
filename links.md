@@ -44,7 +44,6 @@
 ### Focus
 - gasless approvals
 - pre-funded treasury disbursement
-- no mint dependency
 
 ## Phase 4 - Chain-Agnostic and Multi-Token
 

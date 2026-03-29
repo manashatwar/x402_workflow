@@ -11,7 +11,7 @@ Caller repository files are documented separately in [caller-repo-template/docs/
 
 ## Settlement Engine
 
-- src/settlement/sendScore.js: validates env, builds transaction, executes mint
+- src/settlement/sendScore.js: validates env, builds transaction, executes client-contract call
 - src/validation/addressValidator.js: wallet and amount validation helpers
 - config/chainConfig.js: network configuration and explorer URL helpers
 

@@ -31,7 +31,7 @@ Required inputs:
 Required secrets:
 
 - THIRDWEB_SECRET_KEY: Thirdweb backend auth
-- SERVER_WALLET: private key with mint authority
+- SERVER_WALLET: private key with contract execution authority
 - SCORE_TOKEN_CONTRACT: deployed SCORE token contract
 - RPC_URL: Monad RPC endpoint
 - GITHUB_TOKEN: callback comment permission

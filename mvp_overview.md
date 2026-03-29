@@ -9,10 +9,48 @@ It is based on current workflow files and settlement source code in this reposit
 
 ## 1. System Purpose
 
-The system rewards pull request contributors by minting non-transferable SCORE tokens on Monad after maintainer approval.
+The x402 system is a **stateless CI/CD execution engine** that transfers tokens to pull request contributors after maintainer approval. The engine is not tied to any specific token or network.
 
 - Caller repo handles GitHub PR interaction and approval command flow.
-- Reusable repo handles blockchain settlement and callback reporting.
+- Reusable repo (execution engine) orchestrates transactions on client-provided infrastructure and callback reporting.
+- Client provides and owns: token contract, treasury contract (optional), RPC endpoint, operator wallet, and chain configuration.
+
+## 1a. Client Responsibilities
+
+The client organization must provide:
+
+- **RPC_URL**: endpoint for the chosen EVM chain (e.g., Monad testnet)
+- **PRIVATE_KEY**: operator wallet with sufficient balance for gas and transfers
+- **TOKEN_CONTRACT** or **TREASURY_CONTRACT**: address of the client-deployed token or treasury contract with transfer/disbursement capability (if using treasury model)
+- **Recipient and amount inputs**: from the caller workflow based on PR events
+
+The client owns and manages:
+
+- All smart contracts (deployment, upgrades, governance)
+- All operator wallets (private keys, funding, rotation)
+- The chosen blockchain network and RPC infrastructure
+- Settlement policies and payout rules (enforced at contract level)
+
+## 1b. Security Modes
+
+The engine has two execution modes for client configuration:
+
+1. Direct transfer mode
+- Uses client-provided token contract for direct transfer execution.
+- Best for compatibility, testnet, and early-stage rollouts.
+
+2. Treasury mode(**currently out of scope, planned for Phase 3**)
+- Uses client-provided treasury contract for `disburse(recipient, amount)` execution.
+- Best for production environments requiring limits, pause controls, and stricter operator permissions.
+
+This allows existing deployments to integrate immediately, then migrate to stronger controls without breaking caller workflows.
+
+## 1c. Governance Split (Web2 vs Web3)
+
+- GitHub governance controls who can trigger payouts (branch protection, approvals, status checks, maintainer commands).
+- Contract governance controls what payout execution is allowed (limits, pause, authorization).
+
+The engine bridges these layers but does not replace either governance system.
 
 ## 2. Repository Roles
 
@@ -32,7 +70,7 @@ Responsibilities:
 - Call reusable workflow with normalized inputs.
 - Show user-facing error/status messages for invalid command or missing wallet.
 
-### Reusable Repository (manashatwar/x402_workflow)
+### Reusable Repository (manashatwar/x402_workflow) - Execution Engine
 
 Primary files:
 
@@ -40,13 +78,21 @@ Primary files:
 - .github/workflows/x402-settlement-demo.yml
 - src/settlement/sendScore.js
 
-Responsibilities:
+Responsibilities (stateless execution only):
 
-- Validate settlement inputs and addresses.
-- Load network configuration for `monad-testnet` or `monad-mainnet`.
-- Execute mint transaction via Thirdweb + wallet account.
+- Accept and validate settlement inputs (recipient, amount, contract address, RPC URL).
+- Validate wallet and contract formats.
+- Build and sign transaction using client-provided RPC and private key.
+- Execute transaction against client-provided chain.
 - Emit `TX_HASH` and `EXPLORER_URL` outputs.
 - Post success/failure callback comment to caller repository using callback token.
+
+**The engine does not:**
+
+- Deploy or manage contracts
+- Select or manage blockchain networks
+- Store or custody funds
+- Make policy decisions (all controlled by contract and client)
 
 ## 3. End-to-End Flow
 
@@ -62,7 +108,7 @@ flowchart TD
 
     H --> I[Reusable workflow validates wallet and contract format]
     I --> J[Execute src/settlement/sendScore.js]
-    J --> K[Thirdweb signs and sends mint transaction on Monad]
+    J --> K[Engine signs and sends transaction on client-provided RPC]
     K --> L[TX hash and explorer URL written to GITHUB_OUTPUT]
     L --> M[Reusable workflow posts callback comment to caller PR]
 
@@ -115,14 +161,14 @@ In caller template mapping, these are provided from caller secrets:
 - Required env validation
 - Address validation with `ethers.isAddress`
 - Network selection (`monad-testnet` or `monad-mainnet`)
-- Mint transaction preparation
+- transaction preparation
 - Transaction broadcast + hash capture
 - Explorer URL construction
 
 ### Blockchain Layer
 
 - Monad network RPC endpoint
-- SCORE token contract `mint(address,uint256)` call
+- Client-provided contract execution call (for example `transfer(address,uint256)` or treasury `disburse(address,uint256)`)
 - On-chain transaction confirmation via tx hash
 
 ## 6. Failure/Guard Paths

@@ -31,7 +31,7 @@ Handoff contract:
 2. Reusable workflow injects inputs as environment variables.
 3. Settlement engine validates all required values.
 4. Engine resolves chain settings from network key.
-5. Engine submits mint transaction through Thirdweb.
+5. Engine submits client-contract transaction through Thirdweb SDK.
 6. Workflow surfaces transaction hash and explorer URL.
 7. Workflow posts completion result to the linked GitHub context.
 

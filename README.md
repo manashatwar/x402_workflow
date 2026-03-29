@@ -1,11 +1,11 @@
 # x402 Workflow (Reusable Settlement Engine)
 
-Reusable GitHub Actions + Node.js settlement engine that mints SCORE tokens on Monad.
+Reusable GitHub Actions + Node.js settlement engine that executes client-provided token contract transfers/disbursements on EVM chains.
 
 This repository is the settlement side of a two-repo system:
 
 1. Caller repository: collects PR wallet and maintainer command.
-2. This repository: validates inputs, executes mint transaction, reports result.
+2. This repository: validates inputs, executes client-contract transaction, reports result.
 
 ## Repository Responsibility
 
